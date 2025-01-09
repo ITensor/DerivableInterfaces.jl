@@ -48,7 +48,8 @@ julia> Pkg.add("DerivableInterfaces")
 ## Examples
 
 ````julia
-using DerivableInterfaces: DerivableInterfaces, @array_aliases, @derive, @interface, interface
+using DerivableInterfaces:
+  DerivableInterfaces, @array_aliases, @derive, @interface, interface
 using Test: @test
 ````
 
