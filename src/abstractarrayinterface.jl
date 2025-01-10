@@ -106,14 +106,15 @@ end
   return similar(arraytype(interface, T), axes)
 end
 
-using BroadcastMapConversion: map_function, map_args
+using MapBroadcast: Mapped
 # TODO: Turn this into an `@interface AbstractArrayInterface` function?
 # TODO: Look into `SparseArrays.capturescalars`:
 # https://github.com/JuliaSparse/SparseArrays.jl/blob/1beb0e4a4618b0399907b0000c43d9f66d34accc/src/higherorderfns.jl#L1092-L1102
 @interface interface::AbstractArrayInterface function Base.copyto!(
   a_dest::AbstractArray, bc::Broadcast.Broadcasted
 )
-  return @interface interface map!(map_function(bc), a_dest, map_args(bc)...)
+  m = Mapped(bc)
+  return @interface interface map!(m.f, a_dest, m.args...)
 end
 
 # This captures broadcast expressions such as `a .= 2`.
@@ -123,8 +124,9 @@ end
 @interface interface::AbstractArrayInterface function Base.copyto!(
   a_dest::AbstractArray, bc::Broadcast.Broadcasted{Broadcast.DefaultArrayStyle{0}}
 )
-  isempty(map_args(bc)) || error("Bad broadcast expression.")
-  return @interface interface map!(map_function(bc), a_dest, a_dest)
+  m = Mapped(bc)
+  isempty(m.args) || error("Bad broadcast expression.")
+  return @interface interface map!(m.f, a_dest, a_dest)
 end
 
 # This is defined in this way so we can rely on the Broadcast logic
