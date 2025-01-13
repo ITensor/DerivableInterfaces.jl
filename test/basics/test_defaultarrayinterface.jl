@@ -15,7 +15,7 @@ end
     @test a == A[i...]
     v = 1.1
     A′ = @inferred _setindex!(A, v, i...)
-    @test_broken A′ == (A[i...] = v) # FIXME: `setindex` and `A[i] = v` have a slight semantic difference
+    @test A′ == (A[i...] = v)
   end
 end
 

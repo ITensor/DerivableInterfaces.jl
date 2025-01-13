@@ -80,10 +80,11 @@ DerivableInterfaces.call(SparseArrayInterface(), Base.setindex!, a, value, I...)
 ```
 =#
 function interface_setref(interface::Union{Symbol,Expr}, func::Expr)
-  func = @match func begin
-    :($a[$(I...)] = $value) => :(Base.setindex!($a, $value, $(I...)))
+  return @match func begin
+    :($a[$(I...)] = $value) => Expr(
+      :block, interface_call(interface, :(Base.setindex!($a, $value, $(I...)))), :($value)
+    )
   end
-  return interface_call(interface, func)
 end
 
 #=
