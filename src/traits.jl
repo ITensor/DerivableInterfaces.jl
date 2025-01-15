@@ -20,7 +20,31 @@ end
 @derive SparseArrayInterface SparseArrayDOK AbstractArrayOps
 ```
 =#
-function derive(::Val{:AbstractArrayOps}, type)
+
+"""
+    AbstractArrayOps
+
+Collection of array overdubs, to be used by [`@derive`](@ref).
+
+Consist of the following functions
+```julia
+getindex, setindex!
+similar
+copy, copy!, copyto!
+map, map!, mapreduce, reduce, fill!
+all
+iszero, zero, zero!
+real
+permutedims!
+BroadcastStyle
+cat
+MemoryLayout
+mul!
+```
+"""
+const AbstractArrayOps = Val(:AbstractArrayOps)
+
+function derive(::typeof(AbstractArrayOps), type)
   return quote
     Base.getindex(::$type, ::Any...)
     Base.getindex(::$type, ::Int...)
