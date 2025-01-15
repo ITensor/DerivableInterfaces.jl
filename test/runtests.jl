@@ -24,9 +24,11 @@ isexamplefile(fn) =
   # tests in groups based on folder structure
   for testgroup in filter(isdir, readdir(@__DIR__))
     if GROUP == "ALL" || GROUP == uppercase(testgroup)
-      for file in filter(istestfile, readdir(joinpath(@__DIR__, testgroup); join=true))
-        @eval @safetestset $(last(splitdir(file))) begin
-          include($file)
+      groupdir = joinpath(@__DIR__, testgroup)
+      for file in filter(istestfile, readdir(groupdir))
+        filename = joinpath(groupdir, file)
+        @eval @safetestset $file begin
+          include($filename)
         end
       end
     end
