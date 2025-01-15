@@ -3,17 +3,9 @@ using MLStyle: @match
 
 argname(i::Int) = Symbol(:arg, i)
 
-# Remove lines from a block.
-# See: https://thautwarm.github.io/MLStyle.jl/stable/syntax/pattern/#Ast-Pattern-1
-# TODO: Use this type of function to replace `DerivableInterfaces.f` with `GlobalRef(DerivableInterfaces, f)`
+# TODO: Use the following type of function to replace `DerivableInterfaces.f` with `GlobalRef(DerivableInterfaces, f)`
 # and also replace `T` with `SparseArrayDOK`.
-function rmlines(expr)
-  return @match expr begin
-    e::Expr => Expr(e.head, filter(!isnothing, map(rmlines, e.args))...)
-    _::LineNumberNode => nothing
-    a => a
-  end
-end
+# See: https://thautwarm.github.io/MLStyle.jl/stable/syntax/pattern/#Ast-Pattern-1
 
 function globalref_derive(expr)
   return @match expr begin
@@ -92,7 +84,7 @@ function derive_funcs(args...)
   interface_and_or_types = Base.front(args)
   funcs = last(args)
   Meta.isexpr(funcs, :block) || error("Expected a block.")
-  funcs = rmlines(funcs)
+  Base.remove_linenums!(funcs)
   return Expr(
     :block, map(func -> derive_func(interface_and_or_types..., func), funcs.args)...
   )
