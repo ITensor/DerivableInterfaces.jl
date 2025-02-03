@@ -1,7 +1,16 @@
+
 # TODO: Add `ndims` type parameter.
+# TODO: What does `AbstractArrayInterface` entail? What are the assumptions and what
+# is the goal? What can I expect if my interface subtypes this?
+# TODO: I find it slightly confusing that `AbstractArrayInterface` does not mean interface
+# based on the abstract array interface in base, since that
+#  was definitely how I first read this
 abstract type AbstractArrayInterface <: AbstractInterface end
 
 # TODO: Define as `DefaultArrayInterface()`.
+# TODO: does it make sense to also overdub broadcasting like this?
+# Unlike `map` etc, that already has an interface based on styles, so
+# there is not that much benefit in rewrapping that machinery again
 function interface(::Type{<:Broadcast.AbstractArrayStyle})
   return error("Not defined.")
 end
@@ -15,6 +24,9 @@ arraytype(::AbstractArrayInterface, T::Type) = error("Not implemented.")
 
 using ArrayLayouts: ArrayLayouts
 
+# TODO: is it fair to dispatch AbstractArray to layoutarray?
+# I would expect AbstractArrayInterface to be using the base implementation,
+# while LayoutArrayInterface could use the layout indexing?
 @interface ::AbstractArrayInterface function Base.getindex(a::AbstractArray, I...)
   return ArrayLayouts.layout_getindex(a, I...)
 end
@@ -58,6 +70,7 @@ end
   return error("Not implemented.")
 end
 
+# TODO: is it fair to assume that `AbstractArrayInterface` will always have CartesianIndexing?
 # Linear indexing.
 @interface interface ::AbstractArrayInterface function Base.setindex!(
   a::AbstractArray, value, I::Int
@@ -110,6 +123,7 @@ using MapBroadcast: Mapped
 # TODO: Turn this into an `@interface AbstractArrayInterface` function?
 # TODO: Look into `SparseArrays.capturescalars`:
 # https://github.com/JuliaSparse/SparseArrays.jl/blob/1beb0e4a4618b0399907b0000c43d9f66d34accc/src/higherorderfns.jl#L1092-L1102
+# TODO: is this a fair assumption for a default implementation?
 @interface interface::AbstractArrayInterface function Base.copyto!(
   a_dest::AbstractArray, bc::Broadcast.Broadcasted
 )

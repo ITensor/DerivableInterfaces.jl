@@ -3,17 +3,9 @@ using MLStyle: @match
 
 argname(i::Int) = Symbol(:arg, i)
 
-# Remove lines from a block.
-# See: https://thautwarm.github.io/MLStyle.jl/stable/syntax/pattern/#Ast-Pattern-1
-# TODO: Use this type of function to replace `DerivableInterfaces.f` with `GlobalRef(DerivableInterfaces, f)`
+# TODO: Use the following type of function to replace `DerivableInterfaces.f` with `GlobalRef(DerivableInterfaces, f)`
 # and also replace `T` with `SparseArrayDOK`.
-function rmlines(expr)
-  return @match expr begin
-    e::Expr => Expr(e.head, filter(!isnothing, map(rmlines, e.args))...)
-    _::LineNumberNode => nothing
-    a => a
-  end
-end
+# See: https://thautwarm.github.io/MLStyle.jl/stable/syntax/pattern/#Ast-Pattern-1
 
 function globalref_derive(expr)
   return @match expr begin
@@ -23,9 +15,59 @@ function globalref_derive(expr)
   end
 end
 
+# TODO: consider actually splitting these into different macros,
+# for example @derive, @derive_all?
+
+"""
+    @derive interface func_signatures
+
+Dispatch the function signature(s) `func_signatures` to an overdubbed function
+defined by interface `interface`.
+
+```jldoctest
+julia> @macroexpand @derive SparseArrayInterface() Base.getindex(::SparseArrayDOK, ::Int)
+:(function Base.getindex(arg1::SparseArrayDOK, arg2::Int)
+      DerivableInterfaces.call(SparseArrayInterface(), Base.getindex, arg1, arg2)
+  end)
+```
+
+    @derive types_tuple func_signatures
+
+Alternatively, dispatch these methods by deriving
+the interface from the given type tuples, and using the resulting overdubbed function.
+
+```jldoctest
+julia> @macroexpand @derive (T=SparseArrayDOK,) Base.getindex(::T, ::Int)
+:(function Base.getindex(arg1::SparseArrayDOK, arg2::Int)
+      DerivableInterfaces.call(DerivableInterfaces.combine_interfaces(arg1), Base.getindex, arg1, arg2)
+  end)
+```
+
+    @derive type trait
+
+Finally, for a combination of common operations, it can be convenient to simply derive a
+collection all at once.
+
+```jldoctest
+julia> @macroexpand @derive SparseArrayDOK AbstractArrayOps
+quote
+    function Base.getindex(arg1::SparseArrayDOK, arg2::Any...)
+        DerivableInterfaces.call(DerivableInterfaces.combine_interfaces(arg1), Base.getindex, arg1, arg2...)
+    end
+    function Base.getindex(arg1::SparseArrayDOK, arg2::Int...)
+        DerivableInterfaces.call(DerivableInterfaces.combine_interfaces(arg1), Base.getindex, arg1, arg2...)
+    end
+    function Base.setindex!(arg1::SparseArrayDOK, arg2::Any, arg3::Any...)
+        DerivableInterfaces.call(DerivableInterfaces.combine_interfaces(arg1), Base.setindex!, arg1, arg2, arg3...)
+    end
+[...]
+```
+"""
 macro derive(expr...)
   return esc(derive_expr(expr...))
 end
+
+# TODO: in the following, the ::Union{Symbol,Expr} can probably just be left out?
 
 #==
 ```julia
@@ -51,6 +93,8 @@ function derive_expr(interface_or_types::Union{Symbol,Expr}, funcs::Expr)
   end
 end
 
+# TODO: does it make sense to specify both the interface and the types? what
+# is the purpose of the keeping the types separate now?
 #==
 ```julia
 @derive SparseArrayInterface() (T=SparseArrayDOK,) Base.getindex(::T, ::Int...)
@@ -92,7 +136,7 @@ function derive_funcs(args...)
   interface_and_or_types = Base.front(args)
   funcs = last(args)
   Meta.isexpr(funcs, :block) || error("Expected a block.")
-  funcs = rmlines(funcs)
+  Base.remove_linenums!(funcs)
   return Expr(
     :block, map(func -> derive_func(interface_and_or_types..., func), funcs.args)...
   )

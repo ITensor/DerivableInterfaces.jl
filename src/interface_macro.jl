@@ -1,6 +1,28 @@
 using ExproniconLite: JLFunction, codegen_ast, split_function, split_function_head
 using MLStyle: @match
 
+"""
+    @interface interface expr
+
+Rewrite the expression `expr` to make use of the given `interface`.
+This can be used to either globally define a method for a given interface and function,
+or to locally dispatch to a given implementation.
+
+The former consists of
+```@example interface
+I = MyInterface()
+@interface I function f(args...; kwargs...)
+  # function body
+end
+```
+
+while the latter supports any of the following
+```@example interface
+@interface I f(args...; kwargs...)
+@interface I f[args...]
+@interface I f[args...] = v
+```
+"""
 macro interface(expr...)
   return esc(interface_expr(expr...))
 end
