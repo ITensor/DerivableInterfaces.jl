@@ -1,9 +1,8 @@
 # TODO: Add `ndims` type parameter.
 abstract type AbstractArrayInterface <: AbstractInterface end
 
-# TODO: Define as `DefaultArrayInterface()`.
 function interface(::Type{<:Broadcast.AbstractArrayStyle})
-  return error("Not defined.")
+  return DefaultArrayInterface()
 end
 
 function interface(::Type{<:Broadcast.Broadcasted{<:Style}}) where {Style}
