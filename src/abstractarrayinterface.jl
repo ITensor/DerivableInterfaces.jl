@@ -5,6 +5,10 @@ function interface(::Type{<:Broadcast.AbstractArrayStyle})
   return DefaultArrayInterface()
 end
 
+function interface(::Type{<:Broadcast.Broadcasted{Nothing}})
+  return DefaultArrayInterface()
+end
+
 function interface(::Type{<:Broadcast.Broadcasted{<:Style}}) where {Style}
   return interface(Style)
 end
