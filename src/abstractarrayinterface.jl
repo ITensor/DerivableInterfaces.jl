@@ -324,10 +324,14 @@ end
   return a_dest
 end
 
-@interface interface::AbstractArrayInterface function Base._cat(dims, as::AbstractArray...)
+@interface interface::AbstractArrayInterface function cat_along(dims, as::AbstractArray...)
   a_dest = similar(Cat(as...; dims))
   @interface interface cat!(a_dest, as...; dims)
   return a_dest
+end
+
+@interface interface::AbstractArrayInterface function Base.cat(as::AbstractArray...; dims)
+  return @interface interface cat_along(dims, as...)
 end
 
 # TODO: Use `@derive` instead:

@@ -45,7 +45,7 @@ function derive(::Val{:AbstractArrayOps}, type)
     Base.permutedims!(::Any, ::$type, ::Any)
     Broadcast.BroadcastStyle(::Type{<:$type})
     Base.copyto!(::$type, ::Broadcast.Broadcasted{Broadcast.DefaultArrayStyle{0}})
-    Base._cat(::Any, ::$type...)
+    Base.cat(::$type...; kwargs...)
     ArrayLayouts.MemoryLayout(::Type{<:$type})
     LinearAlgebra.mul!(::AbstractMatrix, ::$type, ::$type, ::Number, ::Number)
   end
