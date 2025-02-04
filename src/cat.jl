@@ -15,9 +15,14 @@ or the filling procedure via [`copy_or_fill!`](@ref), [`cat_offset1!`](@ref) or 
 """
 module Cat
 
-public cat, cat!
-public cat_size_shape, cat_similar
-public cat_offset!, cat_offset1!, copy_or_fill!
+# this seems to break the formatter?
+# public cat
+# public cat!
+# public cat_size_shape
+# public cat_similar
+# public cat_offset!
+# public cat_offset1!
+# public copy_or_fill!
 
 # This is mostly a copy of the Base implementation, with the main difference being
 # that the destination is chosen based on all inputs instead of just the first.
@@ -29,26 +34,26 @@ public cat_offset!, cat_offset1!, copy_or_fill!
 # - specializing copy_or_fill!(dest, inds, x) on dest and/or x
 
 function cat(dims, args...)
-    T = promote_eltypeof(args...)
-    catdims = Base.dims2cat(dims)
-    shape = cat_size_shape(catdims, args...)
-    dest = cat_similar(T, shape, args...)
-    if count(!iszero, catdims)::Int > 1
-        zero!(dest)
-    end
-    return cat!(dest, shape, catdims, args...)
+  T = promote_eltypeof(args...)
+  catdims = Base.dims2cat(dims)
+  shape = cat_size_shape(catdims, args...)
+  dest = cat_similar(T, shape, args...)
+  if count(!iszero, catdims)::Int > 1
+    zero!(dest)
+  end
+  return cat!(dest, shape, catdims, args...)
 end
 
 function cat!(dest, shape, catdims, args...)
-    offsets = ntuple(zero, ndims(dest))
-    return cat_offset!(dest, shape, catdims, offsets, args...)
+  offsets = ntuple(zero, ndims(dest))
+  return cat_offset!(dest, shape, catdims, offsets, args...)
 end
 
 # Write in terms of a generic cat_offset!, which in term aims to specialize on 1 argument
 # at a time via cat_offset1! to avoid having to write too many specializations
 function cat_offset!(dest, shape, catdims, offsets, x, X...)
-    dest, newoffsets = cat_offset1!(dest, shape, catdims, offsets, x)
-    return cat_offset!(dest, shape, newoffsets, X...)
+  dest, newoffsets = cat_offset1!(dest, shape, catdims, offsets, x)
+  return cat_offset!(dest, shape, newoffsets, X...)
 end
 cat_offset!(dest, shape, catdims, offsets) = dest
 
@@ -56,14 +61,14 @@ cat_offset!(dest, shape, catdims, offsets) = dest
 # it simply computes indices and calls out to copy_or_fill!, so if that
 # pattern works you can also overload that function
 function cat_offset1!(dest, shape, catdims, offsets, x)
-    inds = ntuple(length(offests)) do i
-        (i ≤ length(catdims) && catdims[i]) ? offsets[i] + cat_indices(x, i) : 1:shape[i]
-    end
-    copy_or_fill!(dest, inds, x)
-    newoffsets = ntuple(length(offsets)) do i
-        (i ≤ length(catdims) && catdims[i]) ? offsets[i] + cat_size(x, i) : offsets[i]
-    end
-    return dest, newoffsets
+  inds = ntuple(length(offests)) do i
+    (i ≤ length(catdims) && catdims[i]) ? offsets[i] + cat_indices(x, i) : 1:shape[i]
+  end
+  copy_or_fill!(dest, inds, x)
+  newoffsets = ntuple(length(offsets)) do i
+    (i ≤ length(catdims) && catdims[i]) ? offsets[i] + cat_size(x, i) : offsets[i]
+  end
+  return dest, newoffsets
 end
 
 # utility functions, default to their base counterparts but defined here to
