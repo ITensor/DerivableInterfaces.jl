@@ -324,6 +324,10 @@ end
   return a_dest
 end
 
+function cat_along(dims, as::AbstractArray...)
+  return @interface interface(as...) cat_along(dims, as...)
+end
+
 @interface interface::AbstractArrayInterface function cat_along(dims, as::AbstractArray...)
   a_dest = similar(Cat(as...; dims))
   @interface interface cat!(a_dest, as...; dims)
