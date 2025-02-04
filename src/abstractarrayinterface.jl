@@ -127,9 +127,7 @@ end
 @interface interface::AbstractArrayInterface function Base.copyto!(
   a_dest::AbstractArray, bc::Broadcast.Broadcasted{Broadcast.DefaultArrayStyle{0}}
 )
-  m = Mapped(bc)
-  isempty(m.args) || error("Bad broadcast expression.")
-  return @interface interface map!(m.f, a_dest, a_dest)
+  @interface interface fill!(a_dest, bc.f(bc.args...)[])
 end
 
 # This is defined in this way so we can rely on the Broadcast logic
