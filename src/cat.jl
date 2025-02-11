@@ -2,20 +2,8 @@
 """
     module Concatenate
 
-This module provides a slight modification to the Base implementation of concatenation.
-In particular, the biggest hindrance there is that the output is selected based solely on the first input argument.
-Here, we remedy this, and along the way leave some more flexible entry points.
-Where possible, the final default implementation hooks back into Base, to minimize the required code.
+Alternative implementation for `Base.cat` through [`concatenate(!)`](@ref).
 
-For users, this implements `cat(!)`, which up to a slight modification of the signature follow their Base counterparts.
-
-Developers can specialize the behavior and implementations of these functions,
-either changing the destination through [`cat_size_shape`](@ref) and [`cat_similar`](@ref),
-or the filling procedure via [`copy_or_fill!`](@ref), [`cat_offset1!`](@ref) or [`cat_offset!`](@ref)
-"""
-module Concatenate
-
-#=
 This is mostly a copy of the Base implementation, with the main difference being
 that the destination is chosen based on all inputs instead of just the first.
 
@@ -25,20 +13,26 @@ reminiscent of how Broadcast works.
 The various entry points for specializing behavior are:
 
 * Destination selection can be achieved through
+
     Base.similar(cat::Concatenated{Interface}, ::Type{T}, axes) where {Interface}
 
 * Implementation for moving one or more arguments into the destionation through
+
     copy_offset!(dest, shape, catdims, offsets, args...)
     copy_offset1!(dest, shape, catdims, offsets, x)
 
 * Custom implementations:
+
     Base.copy(cat::Concatenated{Interface}) # custom implementation of concatenate
     Base.copyto!(dest, cat::Concatenated{Interface}) # custom implementation of concatenate! based on interface
     Base.copyto!(dest, cat::Concatenated{Nothing}) # custom implementation of concatenate! based on typeof(dest)
-=#
+"""
+module Concatenate
+
+using Compat: @compat
 
 export concatenate, concatenate!
-public Concatenated, cat_offset!, cat_offset1!, copy_or_fill!
+@compat public Concatenated, cat_offset!, cat_offset1!, copy_or_fill!
 
 using Base: promote_eltypeof
 using .DerivableInterfaces: AbstractInterface, interface
@@ -96,9 +90,21 @@ cat_similar(::Type{T}, shape, args...) = Base.cat_similar(args[1], T, shape)
 
 # Main logic
 # ----------
+"""
+    concatenate(args...; dims)
+
+Concatenate the supplied `args` along dimensions `dims`.
+
+See also [`concatenate!`](@ref).
+"""
 concatenate(args...; dims) = Base.materialize(concatenated(dims, args...))
 Base.materialize(cat::Concatenated) = copy(cat)
 
+"""
+    concatenate!(dest, args...; dims)
+
+Concatenate the suppliled `args` along dimensions `dims`, placing the result into `dest`.
+"""
 function concatenate!(dest, args...; dims)
   Base.materialize!(dest, concatenated(dims, args...))
   return dest
