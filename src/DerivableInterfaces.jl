@@ -9,4 +9,7 @@ include("abstractarrayinterface.jl")
 include("defaultarrayinterface.jl")
 include("traits.jl")
 
+# Specific AbstractArray alternatives
+include("concatenate.jl")
+
 end
