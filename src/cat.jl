@@ -76,7 +76,7 @@ concatenated(args...; dims) = Concatenated(args, Val(dims))
 Base.similar(cat::Concatenated) = similar(cat, promote_eltypeof(cat.args...))
 Base.similar(cat::Concatenated, ::Type{T}) where {T} = similar(cat, T, axes(cat))
 function Base.similar(cat::Concatenated, ::Type{T}, ax) where {T}
-  return cat_similar(interface(cat), T, ax)
+  return similar(interface(cat), T, ax)
 end
 
 # For now, simply couple back to base implementation
@@ -143,15 +143,16 @@ cat_offset!(dest, shape, catdims, offsets) = dest
 # pattern works you can also overload that function
 function cat_offset1!(dest, shape, catdims, offsets, x)
   inds = ntuple(length(offests)) do i
-    (i ≤ length(catdims) && catdims[i]) ? offsets[i] + cat_indices(x, i) : 1:shape[i]
+    (i ≤ length(catdims) && catdims[i]) ? offsets[i] + axes(x, i) : 1:shape[i]
   end
   copy_or_fill!(dest, inds, x)
   newoffsets = ntuple(length(offsets)) do i
-    (i ≤ length(catdims) && catdims[i]) ? offsets[i] + cat_size(x, i) : offsets[i]
+    (i ≤ length(catdims) && catdims[i]) ? offsets[i] + size(x, i) : offsets[i]
   end
   return dest, newoffsets
 end
 
 copy_or_fill!(dest, inds, x) = Base._copy_or_fill!(dest, inds, x)
+zero!(x::AbstractArray) = fill!(x, zero(eltype(x)))
 
 end
