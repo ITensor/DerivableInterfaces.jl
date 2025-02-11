@@ -70,7 +70,7 @@ DerivableInterfaces.interface(::Type{<:SparseArrayStyle}) = SparseArrayInterface
 
 @derive SparseArrayStyle AbstractArrayStyleOps
 
-DerivableInterfaces.arraytype(::SparseArrayInterface, T::Type) = SparseArrayDOK{T}
+Base.similar(::SparseArrayInterface, ::Type{T}, ax) where {T} = similar(SparseArrayDOK{T}, ax)
 
 # Interface functions.
 @interface ::SparseArrayInterface function Broadcast.BroadcastStyle(type::Type)
@@ -226,6 +226,7 @@ struct SparseArrayDOK{T,N} <: AbstractArray{T,N}
 end
 storage(a::SparseArrayDOK) = a.storage
 Base.size(a::SparseArrayDOK) = a.size
+Base.similar(::Type{SparseArrayDOK{T}}, axes) = SparseArrayDOK{T}(undef, axes)
 function SparseArrayDOK{T}(size::Int...) where {T}
   N = length(size)
   return SparseArrayDOK{T,N}(Dict{CartesianIndex{N},T}(), size)
