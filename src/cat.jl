@@ -1,4 +1,3 @@
-# separate out in module to have the abliity of defining cat
 """
     module Concatenate
 
@@ -37,8 +36,6 @@ export concatenate, concatenate!
 using Base: promote_eltypeof
 using .DerivableInterfaces: AbstractInterface, interface
 
-# TODO: named like this because Catted looks so ugly and Cat is module name?
-# cfr Broadcast - Broadcasted
 """
     Concatenated{Interface,Dims,Args<:Tuple}
 
