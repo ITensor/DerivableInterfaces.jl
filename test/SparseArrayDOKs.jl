@@ -226,7 +226,6 @@ struct SparseArrayDOK{T,N} <: AbstractArray{T,N}
 end
 storage(a::SparseArrayDOK) = a.storage
 Base.size(a::SparseArrayDOK) = a.size
-Base.similar(::Type{SparseArrayDOK{T}}, axes) = SparseArrayDOK{T}(undef, axes)
 function SparseArrayDOK{T}(size::Int...) where {T}
   N = length(size)
   return SparseArrayDOK{T,N}(Dict{CartesianIndex{N},T}(), size)
@@ -269,6 +268,6 @@ DerivableInterfaces.interface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
 # DerivableInterfaces the interface for the type.
 @derive AnySparseArrayDOK AbstractArrayOps
 
-Base._cat(dims, args::SparseArrayDOK...) = DerivableInterfaces.concatenate(args...; dims)
+Base._cat(dims, args::SparseArrayDOK...) = DerivableInterfaces.Concatenate.concatenate(args...; dims)
 
 end
