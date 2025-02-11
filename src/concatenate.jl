@@ -68,8 +68,12 @@ DerivableInterfaces.interface(cat::Concatenated) = cat.interface
 
 concatenated(args...; dims) = Concatenated(Val(dims), args)
 
-function Base.convert(::Type{Concatenated{NewInterface}}, cat::Concatenated{<:Any,Dims,Args}) where {NewInterface,Dims,Args}
-  return Concatenated{NewInterface}(cat.dims, cat.args)::Concatenated{NewInterface,Dims,Args}
+function Base.convert(
+  ::Type{Concatenated{NewInterface}}, cat::Concatenated{<:Any,Dims,Args}
+) where {NewInterface,Dims,Args}
+  return Concatenated{NewInterface}(
+    cat.dims, cat.args
+  )::Concatenated{NewInterface,Dims,Args}
 end
 
 # allocating the destination container
