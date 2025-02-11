@@ -70,20 +70,19 @@ concatenated(args...; dims) = Concatenated(args, Val(dims))
 
 # allocating the destination container
 # ------------------------------------
-Base.similar(cat::Concatenated) = similar(cat, promote_eltypeof(cat.args...))
+Base.similar(cat::Concatenated) = similar(cat, eltype(cat))
 Base.similar(cat::Concatenated, ::Type{T}) where {T} = similar(cat, T, axes(cat))
 function Base.similar(cat::Concatenated, ::Type{T}, ax) where {T}
   return similar(interface(cat), T, ax)
 end
 
+Base.eltype(cat::Concatenated) = promote_eltypeof(cat.args...)
+
 # For now, simply couple back to base implementation
 function Base.axes(cat::Concatenated)
   catdims = Base.dims2cat(dims(cat))
-  return cat_size_shape(catdims, cat.args...)
+  return Base.cat_size_shape(catdims, cat.args...)
 end
-
-cat_size_shape(catdims, args...) = Base.cat_size_shape(catdims, args...)
-cat_similar(::Type{T}, shape, args...) = Base.cat_similar(args[1], T, shape)
 
 # Main logic
 # ----------
