@@ -13,9 +13,6 @@ function interface(::Type{<:Broadcast.Broadcasted{<:Style}}) where {Style}
   return interface(Style)
 end
 
-# TODO: Define as `Array{T}`.
-arraytype(::AbstractArrayInterface, T::Type) = error("Not implemented.")
-
 using ArrayLayouts: ArrayLayouts
 
 @interface ::AbstractArrayInterface function Base.getindex(a::AbstractArray, I...)
@@ -85,7 +82,7 @@ end
 @interface interface::AbstractArrayInterface function Base.similar(
   a::AbstractArray, T::Type, size::Tuple{Vararg{Int}}
 )
-  return similar(arraytype(interface, T), size)
+  return similar(interface, T, size)
 end
 
 @interface ::AbstractArrayInterface function Base.copy(a::AbstractArray)
@@ -105,8 +102,7 @@ end
 @interface interface::AbstractArrayInterface function Base.similar(
   bc::Broadcast.Broadcasted, T::Type, axes::Tuple
 )
-  # `arraytype(::AbstractInterface)` determines the default array type associated with the interface.
-  return similar(arraytype(interface, T), axes)
+  return similar(interface, T, axes)
 end
 
 using MapBroadcast: Mapped
