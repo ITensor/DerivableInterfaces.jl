@@ -34,7 +34,7 @@ export concatenate, concatenate!
 @compat public Concatenated, cat_offset!, cat_offset1!, copy_or_fill!
 
 using Base: promote_eltypeof
-using .DerivableInterfaces: AbstractInterface, interface
+using ..DerivableInterfaces: DerivableInterfaces, AbstractInterface, interface
 
 """
     Concatenated{Interface,Dims,Args<:Tuple}
@@ -66,7 +66,11 @@ end
 dims(::Concatenated{A,D}) where {A,D} = D
 DerivableInterfaces.interface(cat::Concatenated) = cat.interface
 
-concatenated(args...; dims) = Concatenated(args, Val(dims))
+concatenated(args...; dims) = Concatenated(Val(dims), args)
+
+function Base.convert(::Type{Concatenated{NewInterface}}, cat::Concatenated{<:Any,Dims,Args}) where {NewInterface,Dims,Args}
+  return Concatenated{NewInterface}(cat.dims, cat.args)::Concatenated{NewInterface,Dims,Args}
+end
 
 # allocating the destination container
 # ------------------------------------
@@ -93,7 +97,7 @@ Concatenate the supplied `args` along dimensions `dims`.
 
 See also [`concatenate!`](@ref).
 """
-concatenate(args...; dims) = Base.materialize(concatenated(dims, args...))
+concatenate(args...; dims) = Base.materialize(concatenated(args...; dims))
 Base.materialize(cat::Concatenated) = copy(cat)
 
 """
@@ -111,7 +115,8 @@ Base.copy(cat::Concatenated) = copyto!(similar(cat), cat)
 
 # default falls back to replacing interface with Nothing
 # this permits specializing on typeof(dest) without ambiguities
-@inline Base.copyto!(dest, cat::Concatenated) =
+# Note: this needs to be defined for AbstractArray specifically to avoid ambiguities with Base.
+@inline Base.copyto!(dest::AbstractArray, cat::Concatenated) =
   copyto!(dest, convert(Concatenated{Nothing}, cat))
 
 function Base.copyto!(dest::AbstractArray, cat::Concatenated{Nothing})
@@ -119,7 +124,7 @@ function Base.copyto!(dest::AbstractArray, cat::Concatenated{Nothing})
   catdims = Base.dims2cat(dims(cat))
   count(!iszero, catdims)::Int > 1 && zero!(dest)
 
-  shape = cat_size_shape(catdims, cat.args...)
+  shape = Base.cat_size_shape(catdims, cat.args...)
   offsets = ntuple(zero, ndims(dest))
   return cat_offset!(dest, shape, catdims, offsets, cat.args...)
 end
@@ -130,7 +135,7 @@ end
 # at a time via cat_offset1! to avoid having to write too many specializations
 function cat_offset!(dest, shape, catdims, offsets, x, X...)
   dest, newoffsets = cat_offset1!(dest, shape, catdims, offsets, x)
-  return cat_offset!(dest, shape, newoffsets, X...)
+  return cat_offset!(dest, shape, catdims, newoffsets, X...)
 end
 cat_offset!(dest, shape, catdims, offsets) = dest
 
@@ -138,8 +143,8 @@ cat_offset!(dest, shape, catdims, offsets) = dest
 # it simply computes indices and calls out to copy_or_fill!, so if that
 # pattern works you can also overload that function
 function cat_offset1!(dest, shape, catdims, offsets, x)
-  inds = ntuple(length(offests)) do i
-    (i ≤ length(catdims) && catdims[i]) ? offsets[i] + axes(x, i) : 1:shape[i]
+  inds = ntuple(length(offsets)) do i
+    (i ≤ length(catdims) && catdims[i]) ? offsets[i] .+ axes(x, i) : 1:shape[i]
   end
   copy_or_fill!(dest, inds, x)
   newoffsets = ntuple(length(offsets)) do i
