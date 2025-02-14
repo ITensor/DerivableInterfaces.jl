@@ -17,11 +17,11 @@ jobs:
     strategy:
        matrix:
          repo:
-           - 'ITensor/BlockSparseArrays.jl'
-           - 'ITensor/DiagonalArrays.jl'
-           - 'ITensor/ITensorBase.jl'
-           - 'ITensor/NamedDimsArrays.jl'
-           - 'ITensor/SparseArraysBase.jl'
+           - 'BlockSparseArrays'
+           - 'DiagonalArrays'
+           - 'ITensorBase'
+           - 'NamedDimsArrays'
+           - 'SparseArraysBase'
     uses: "ITensor/ITensorActions/.github/workflows/IntegrationTest.yml@main"
     with:
       localregistry: "https://github.com/ITensor/ITensorRegistry.git"
