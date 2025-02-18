@@ -1,7 +1,7 @@
 """
     module Concatenate
 
-Alternative implementation for `Base.cat` through [`concatenate(!)`](@ref).
+Alternative implementation for `Base.cat` through [`cat(!)`](@ref cat).
 
 This is mostly a copy of the Base implementation, with the main difference being
 that the destination is chosen based on all inputs instead of just the first.
@@ -13,7 +13,7 @@ The various entry points for specializing behavior are:
 
 * Destination selection can be achieved through
 
-    Base.similar(cat::Concatenated{Interface}, ::Type{T}, axes) where {Interface}
+    Base.similar(concat::Concatenated{Interface}, ::Type{T}, axes) where {Interface}
 
 * Implementation for moving one or more arguments into the destionation through
 
@@ -22,15 +22,13 @@ The various entry points for specializing behavior are:
 
 * Custom implementations:
 
-    Base.copy(cat::Concatenated{Interface}) # custom implementation of concatenate
-    Base.copyto!(dest, cat::Concatenated{Interface}) # custom implementation of concatenate! based on interface
-    Base.copyto!(dest, cat::Concatenated{Nothing}) # custom implementation of concatenate! based on typeof(dest)
+    Base.copy(concat::Concatenated{Interface}) # custom implementation of cat
+    Base.copyto!(dest, concat::Concatenated{Interface}) # custom implementation of cat! based on interface
+    Base.copyto!(dest, concat::Concatenated{Nothing}) # custom implementation of cat! based on typeof(dest)
 """
 module Concatenate
 
 using Compat: @compat
-
-export concatenate, concatenate!
 @compat public Concatenated, cat_offset!, cat_offset1!, copy_or_fill!
 
 using Base: promote_eltypeof
@@ -64,73 +62,73 @@ struct Concatenated{Interface,Dims,Args<:Tuple}
 end
 
 dims(::Concatenated{A,D}) where {A,D} = D
-DerivableInterfaces.interface(cat::Concatenated) = cat.interface
+DerivableInterfaces.interface(concat::Concatenated) = concat.interface
 
 concatenated(args...; dims) = Concatenated(Val(dims), args)
 
 function Base.convert(
-  ::Type{Concatenated{NewInterface}}, cat::Concatenated{<:Any,Dims,Args}
+  ::Type{Concatenated{NewInterface}}, concat::Concatenated{<:Any,Dims,Args}
 ) where {NewInterface,Dims,Args}
   return Concatenated{NewInterface}(
-    cat.dims, cat.args
+    concat.dims, concat.args
   )::Concatenated{NewInterface,Dims,Args}
 end
 
 # allocating the destination container
 # ------------------------------------
-Base.similar(cat::Concatenated) = similar(cat, eltype(cat))
-Base.similar(cat::Concatenated, ::Type{T}) where {T} = similar(cat, T, axes(cat))
-function Base.similar(cat::Concatenated, ::Type{T}, ax) where {T}
-  return similar(interface(cat), T, ax)
+Base.similar(concat::Concatenated) = similar(concat, eltype(cat))
+Base.similar(concat::Concatenated, ::Type{T}) where {T} = similar(concat, T, axes(cat))
+function Base.similar(concat::Concatenated, ::Type{T}, ax) where {T}
+  return similar(interface(concat), T, ax)
 end
 
-Base.eltype(cat::Concatenated) = promote_eltypeof(cat.args...)
+Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
 
 # For now, simply couple back to base implementation
-function Base.axes(cat::Concatenated)
-  catdims = Base.dims2cat(dims(cat))
-  return Base.cat_size_shape(catdims, cat.args...)
+function Base.axes(concat::Concatenated)
+  catdims = Base.dims2cat(dims(concat))
+  return Base.cat_size_shape(catdims, concat.args...)
 end
 
 # Main logic
 # ----------
 """
-    concatenate(args...; dims)
+    Concatenate.cat(args...; dims)
 
 Concatenate the supplied `args` along dimensions `dims`.
 
-See also [`concatenate!`](@ref).
+See also [`cat!`](@ref).
 """
-concatenate(args...; dims) = Base.materialize(concatenated(args...; dims))
-Base.materialize(cat::Concatenated) = copy(cat)
+cat(args...; dims) = Base.materialize(concatenated(args...; dims))
+Base.materialize(concat::Concatenated) = copy(concat)
 
 """
-    concatenate!(dest, args...; dims)
+    Concatenate.cat!(dest, args...; dims)
 
-Concatenate the suppliled `args` along dimensions `dims`, placing the result into `dest`.
+Concatenate the supplied `args` along dimensions `dims`, placing the result into `dest`.
 """
-function concatenate!(dest, args...; dims)
+function cat!(dest, args...; dims)
   Base.materialize!(dest, concatenated(dims, args...))
   return dest
 end
-Base.materialize!(dest, cat::Concatenated) = copyto!(dest, cat)
+Base.materialize!(dest, concat::Concatenated) = copyto!(dest, concat)
 
-Base.copy(cat::Concatenated) = copyto!(similar(cat), cat)
+Base.copy(concat::Concatenated) = copyto!(similar(concat), concat)
 
 # default falls back to replacing interface with Nothing
 # this permits specializing on typeof(dest) without ambiguities
 # Note: this needs to be defined for AbstractArray specifically to avoid ambiguities with Base.
-@inline Base.copyto!(dest::AbstractArray, cat::Concatenated) =
-  copyto!(dest, convert(Concatenated{Nothing}, cat))
+@inline Base.copyto!(dest::AbstractArray, concat::Concatenated) =
+  copyto!(dest, convert(Concatenated{Nothing}, concat))
 
-function Base.copyto!(dest::AbstractArray, cat::Concatenated{Nothing})
+function Base.copyto!(dest::AbstractArray, concat::Concatenated{Nothing})
   # if concatenation along multiple directions, holes need to be zero.
-  catdims = Base.dims2cat(dims(cat))
+  catdims = Base.dims2cat(dims(concat))
   count(!iszero, catdims)::Int > 1 && zero!(dest)
 
-  shape = Base.cat_size_shape(catdims, cat.args...)
+  shape = Base.cat_size_shape(catdims, concat.args...)
   offsets = ntuple(zero, ndims(dest))
-  return cat_offset!(dest, shape, catdims, offsets, cat.args...)
+  return cat_offset!(dest, shape, catdims, offsets, concat.args...)
 end
 
 # Array implementation
