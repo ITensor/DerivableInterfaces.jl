@@ -12,10 +12,9 @@ array, but hasn't defined a specialized interface. In the absence of overrides f
 `AbstractArrayInterface` arguments, this results in non-overdubbed function calls.
 """
 struct DefaultArrayInterface{N} <: AbstractArrayInterface{N} end
-
-# avoid emitting warnings in fallback `call` definition
-# TODO: this does not work and leads to infinite recursion
-call(::DefaultArrayInterface, f, args...; kwargs...) = f(args...; kwargs...)
+# this effectively has almost no implementations, as they are inherited from the supertype
+# either explicitly or will throw an error. It is simply a concrete instance to use the
+# abstractarrayinterface implementations.
 
 using TypeParameterAccessors: parenttype
 # attempt to figure out interface type from parent
@@ -29,6 +28,7 @@ function interface(::Type{B}) where {B<:Broadcast.AbstractArrayStyle}
 end
 
 # Combination rules
+# -----------------
 function combine_interface_rule(
   ::DefaultArrayInterface{N}, I::AbstractArrayInterface{N}
 ) where {N}
@@ -44,3 +44,6 @@ function combine_interface_rule(
 ) where {N}
   return DefaultArrayInterface{N}()
 end
+
+# Fallback implementations
+# ------------------------
