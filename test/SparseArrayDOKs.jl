@@ -70,7 +70,9 @@ DerivableInterfaces.interface(::Type{<:SparseArrayStyle}) = SparseArrayInterface
 
 @derive SparseArrayStyle AbstractArrayStyleOps
 
-DerivableInterfaces.arraytype(::SparseArrayInterface, T::Type) = SparseArrayDOK{T}
+function Base.similar(::SparseArrayInterface, ::Type{T}, ax) where {T}
+  return similar(SparseArrayDOK{T}, ax)
+end
 
 # Interface functions.
 @interface ::SparseArrayInterface function Broadcast.BroadcastStyle(type::Type)
@@ -267,5 +269,10 @@ DerivableInterfaces.interface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
 
 # DerivableInterfaces the interface for the type.
 @derive AnySparseArrayDOK AbstractArrayOps
+
+# avoid overloading `Base.cat` because of method invalidations
+function Base._cat(dims, args::SparseArrayDOK...)
+  return DerivableInterfaces.Concatenate.cat(args...; dims)
+end
 
 end
