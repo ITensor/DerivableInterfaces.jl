@@ -14,6 +14,7 @@ array, but hasn't defined a specialized interface. In the absence of overrides f
 struct DefaultArrayInterface{N} <: AbstractArrayInterface{N} end
 
 # avoid emitting warnings in fallback `call` definition
+# TODO: this does not work and leads to infinite recursion
 call(::DefaultArrayInterface, f, args...; kwargs...) = f(args...; kwargs...)
 
 using TypeParameterAccessors: parenttype
