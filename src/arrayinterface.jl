@@ -28,5 +28,18 @@ function interface(::Type{B}) where {B<:Broadcast.AbstractArrayStyle}
 end
 
 # Combination rules
-combine_interface_rule(::DefaultArrayInterface, I::AbstractArrayInterface) = I
-combine_interface_rule(I::AbstractArrayInterface, ::DefaultArrayInterface) = I
+function combine_interface_rule(
+  ::DefaultArrayInterface{N}, I::AbstractArrayInterface{N}
+) where {N}
+  return I
+end
+function combine_interface_rule(
+  I::AbstractArrayInterface{N}, ::DefaultArrayInterface{N}
+) where {N}
+  return I
+end
+function combine_interface_rule(
+  ::DefaultArrayInterface{N}, ::DefaultArrayInterface{N}
+) where {N}
+  return DefaultArrayInterface{N}()
+end
