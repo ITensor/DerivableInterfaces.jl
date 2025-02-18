@@ -185,9 +185,7 @@ function derive_interface_func(interface::Union{Symbol,Expr}, func::Expr)
   # TODO: Use the `@interface` macro rather than `DerivableInterfaces.call`
   # directly, in case we want to change the implementation.
   body_args = [interface; name; body_args...]
-  body_name = @match name begin
-    :($M.$f) => :(DerivableInterfaces.call)
-  end
+  body_name = :(DerivableInterfaces.call)
   # TODO: Remove defaults from `kwargs`.
   _, body, _ = split_function(
     codegen_ast(JLFunction(; name=body_name, args=body_args, kwargs))
