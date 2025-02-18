@@ -6,6 +6,7 @@ interface(x1, x_rest...) = combine_interfaces(x1, x_rest...)
 
 # Adapted from `Base.Broadcast.combine_styles`.
 # Get the combined interfaces of the input objects.
+# TODO: make rule definitions symmetric
 function combine_interfaces(x1, x2, x_rest...)
   return combine_interfaces(combine_interfaces(x1, x2), x_rest...)
 end
