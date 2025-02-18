@@ -29,7 +29,7 @@ The various entry points for specializing behavior are:
 module Concatenate
 
 using Compat: @compat
-@compat public Concatenated, cat_offset!, cat_offset1!, copy_or_fill!
+@compat public Concatenated
 
 using Base: promote_eltypeof
 using ..DerivableInterfaces: DerivableInterfaces, AbstractInterface, interface
@@ -121,43 +121,42 @@ Base.copy(concat::Concatenated) = copyto!(similar(concat), concat)
 @inline Base.copyto!(dest::AbstractArray, concat::Concatenated) =
   copyto!(dest, convert(Concatenated{Nothing}, concat))
 
+# couple back to Base implementation if no specialization exists:
+# https://github.com/JuliaLang/julia/blob/29da86bb983066dd076439c2c7bc5e28dbd611bb/base/abstractarray.jl#L1852
 function Base.copyto!(dest::AbstractArray, concat::Concatenated{Nothing})
-  # if concatenation along multiple directions, holes need to be zero.
   catdims = Base.dims2cat(dims(concat))
-  count(!iszero, catdims)::Int > 1 && zero!(dest)
-
   shape = Base.cat_size_shape(catdims, concat.args...)
-  offsets = ntuple(zero, ndims(dest))
-  return cat_offset!(dest, shape, catdims, offsets, concat.args...)
+  count(!iszero, catdims)::Int > 1 && zero!(dest)
+  return Base.__cat(dest, shape, catdims, concat.args...)
 end
 
 # Array implementation
 # --------------------
 # Write in terms of a generic cat_offset!, which in term aims to specialize on 1 argument
 # at a time via cat_offset1! to avoid having to write too many specializations
-function cat_offset!(dest, shape, catdims, offsets, x, X...)
-  dest, newoffsets = cat_offset1!(dest, shape, catdims, offsets, x)
-  return cat_offset!(dest, shape, catdims, newoffsets, X...)
-end
-cat_offset!(dest, shape, catdims, offsets) = dest
+# function cat_offset!(dest, shape, catdims, offsets, x, X...)
+#   dest, newoffsets = cat_offset1!(dest, shape, catdims, offsets, x)
+#   return cat_offset!(dest, shape, catdims, newoffsets, X...)
+# end
+# cat_offset!(dest, shape, catdims, offsets) = dest
 
 # this is the typical specialization point, which is no longer vararg.
 # it simply computes indices and calls out to copy_or_fill!, so if that
 # pattern works you can also overload that function
-function cat_offset1!(dest, shape, catdims, offsets, x)
-  inds = ntuple(length(offsets)) do i
-    (i ≤ length(catdims) && catdims[i]) ? offsets[i] .+ axes(x, i) : 1:shape[i]
-  end
-  copy_or_fill!(dest, inds, x)
-  newoffsets = ntuple(length(offsets)) do i
-    (i ≤ length(catdims) && catdims[i]) ? offsets[i] + size(x, i) : offsets[i]
-  end
-  return dest, newoffsets
-end
+# function cat_offset1!(dest, shape, catdims, offsets, x)
+#   inds = ntuple(length(offsets)) do i
+#     (i ≤ length(catdims) && catdims[i]) ? offsets[i] .+ axes(x, i) : 1:shape[i]
+#   end
+#   copy_or_fill!(dest, inds, x)
+#   newoffsets = ntuple(length(offsets)) do i
+#     (i ≤ length(catdims) && catdims[i]) ? offsets[i] + size(x, i) : offsets[i]
+#   end
+#   return dest, newoffsets
+# end
 
 # copy of Base._copy_or_fill!
-copy_or_fill!(A, inds, x) = fill!(view(A, inds...), x)
-copy_or_fill!(A, inds, x::AbstractArray) = (A[inds...] = x)
+# copy_or_fill!(A, inds, x) = fill!(view(A, inds...), x)
+# copy_or_fill!(A, inds, x::AbstractArray) = (A[inds...] = x)
 
 zero!(x::AbstractArray) = fill!(x, zero(eltype(x)))
 
