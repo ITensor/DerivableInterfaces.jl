@@ -7,7 +7,6 @@ include("interface_macro.jl")
 include("wrappedarrays.jl")
 include("abstractarrayinterface.jl")
 include("defaultarrayinterface.jl")
-include("traits.jl")
 
 # Specific AbstractArray alternatives
 include("concatenate.jl")

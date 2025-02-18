@@ -68,26 +68,6 @@ function derive_expr(interface::Union{Symbol,Expr}, types::Expr, funcs::Expr)
   end
 end
 
-#==
-```julia
-@derive SparseArrayDOK AbstractArrayOps
-```
-==#
-function derive_expr(type::Union{Symbol,Expr}, trait::Symbol)
-  return derive_trait(type, trait)
-end
-
-#==
-```julia
-@derive SparseArrayInterface() SparseArrayDOK AbstractArrayOps
-```
-==#
-function derive_expr(
-  interface::Union{Symbol,Expr}, types::Union{Symbol,Expr}, trait::Symbol
-)
-  return derive_trait(interface, types, trait)
-end
-
 function derive_funcs(args...)
   interface_and_or_types = Base.front(args)
   funcs = last(args)
@@ -216,27 +196,4 @@ function derive_interface_func(interface::Union{Symbol,Expr}, func::Expr)
   # Use `globalref_derive` to not require having `DerivableInterfaces` in the
   # namespace when `@derive` is called.
   return globalref_derive(codegen_ast(jlfn))
-end
-
-#=
-```julia
-@derive SparseArrayInterface() SparseArrayDOK AbstractArrayOps
-```
-=#
-function derive_trait(
-  interface::Union{Symbol,Expr}, type::Union{Symbol,Expr}, trait::Symbol
-)
-  funcs = Expr(:block, derive(Val(trait), type).args...)
-  return derive_funcs(interface, funcs)
-end
-
-#=
-```julia
-@derive SparseArrayDOK AbstractArrayOps
-```
-=#
-function derive_trait(type::Union{Symbol,Expr}, trait::Symbol)
-  types = :((T=$type,))
-  funcs = Expr(:block, derive(Val(trait), :T).args...)
-  return derive_funcs(types, funcs)
 end
