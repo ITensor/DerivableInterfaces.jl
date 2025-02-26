@@ -10,7 +10,7 @@ argname(i::Int) = Symbol(:arg, i)
 function rmlines(expr)
   return @match expr begin
     e::Expr => Expr(e.head, filter(!isnothing, map(rmlines, e.args))...)
-    _::LineNumberNode => nothing
+    # _::LineNumberNode => nothing
     a => a
   end
 end
@@ -129,6 +129,8 @@ function derive_func(interface_or_types::Union{Symbol,Expr}, func::Expr)
   interface = interface_or_types
   return derive_interface_func(interface, func)
 end
+
+derive_func(::Union{Symbol,Expr}, l::LineNumberNode) = l
 
 #=
 ```julia
