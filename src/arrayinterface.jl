@@ -1,17 +1,15 @@
 """
-`AbstractArrayInterface{N} <: AbstractInterface` is the abstract supertype for any interface
+`AbstractArrayInterface <: AbstractInterface` is the abstract supertype for any interface
 associated with an `AbstractArray` type.
-The `N` parameter is the dimensionality, which can be handy for array types that only support
-specific dimensionalities.
 """
-abstract type AbstractArrayInterface{N} <: AbstractInterface end
+abstract type AbstractArrayInterface <: AbstractInterface end
 
 """
-`DefaultArrayInterface{N}()` is the interface indicating that an object behaves as an `N`-dimensional
+`DefaultArrayInterface()` is the interface indicating that an object behaves as an 
 array, but hasn't defined a specialized interface. In the absence of overrides from other
 `AbstractArrayInterface` arguments, this results in non-overdubbed function calls.
 """
-struct DefaultArrayInterface{N} <: AbstractArrayInterface{N} end
+struct DefaultArrayInterface <: AbstractArrayInterface end
 # this effectively has almost no implementations, as they are inherited from the supertype
 # either explicitly or will throw an error. It is simply a concrete instance to use the
 # abstractarrayinterface implementations.
@@ -20,29 +18,23 @@ using TypeParameterAccessors: parenttype
 # attempt to figure out interface type from parent
 function interface(::Type{A}) where {A<:AbstractArray}
   pA = parenttype(A)
-  return pA === A ? DefaultArrayInterface{ndims(A)}() : interface(pA)
+  return pA === A ? DefaultArrayInterface() : interface(pA)
 end
 
 function interface(::Type{B}) where {B<:Broadcast.AbstractArrayStyle}
-  return DefaultArrayInterface{ndims(B)}()
+  return DefaultArrayInterface()
 end
 
 # Combination rules
 # -----------------
-function combine_interface_rule(
-  ::DefaultArrayInterface{N}, I::AbstractArrayInterface{N}
-) where {N}
+function combine_interface_rule(::DefaultArrayInterface, I::AbstractArrayInterface)
   return I
 end
-function combine_interface_rule(
-  I::AbstractArrayInterface{N}, ::DefaultArrayInterface{N}
-) where {N}
+function combine_interface_rule(I::AbstractArrayInterface, ::DefaultArrayInterface)
   return I
 end
-function combine_interface_rule(
-  ::DefaultArrayInterface{N}, ::DefaultArrayInterface{N}
-) where {N}
-  return DefaultArrayInterface{N}()
+function combine_interface_rule(::DefaultArrayInterface, ::DefaultArrayInterface)
+  return DefaultArrayInterface()
 end
 
 # Fallback implementations
