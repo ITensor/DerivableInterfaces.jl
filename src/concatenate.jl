@@ -32,7 +32,7 @@ using Compat: @compat
 @compat public Concatenated
 
 using Base: promote_eltypeof
-using ..DerivableInterfaces: DerivableInterfaces, AbstractInterface, interface
+using ..DerivableInterfaces: DerivableInterfaces, AbstractInterface, interface, zero!
 
 """
     Concatenated{Interface,Dims,Args<:Tuple}
@@ -157,7 +157,5 @@ end
 # copy of Base._copy_or_fill!
 # copy_or_fill!(A, inds, x) = fill!(view(A, inds...), x)
 # copy_or_fill!(A, inds, x::AbstractArray) = (A[inds...] = x)
-
-zero!(x::AbstractArray) = fill!(x, zero(eltype(x)))
 
 end
