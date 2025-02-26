@@ -1,15 +1,24 @@
-#=
-Rewrite `f(args...)` to `DerivableInterfaces.call(interface, f, args...)`.
-Similar to `Cassette.overdub`.
+"""
+     call(interface, f, args...; kwargs...)
 
-This errors for debugging, but probably should be defined as:
-```julia
-call(interface, f, args...) = f(args...)
-```
-=#
-call(interface, f, args...; kwargs...) = error("Not implemented")
+Call the overdubbed function implementing `f(args...; kwargs...)` for a given interface.
 
-# Change the behavior of a function to use a certain interface.
+See also [`@interface`](@ref).
+"""
+call(interface, f, args...; kwargs...) = throw(MethodError(interface(f), args))
+# TODO: do we want to methoderror for `call` instead?
+
+"""
+    struct InterfaceFunction{I,F} <: Function
+
+Callable struct to overdub a function `f::F` with a custom implementation based on
+an interface `interface::I`.
+
+## Fields
+
+- `interface::I`: interface struct
+- `f::F`: function to overdub
+"""
 struct InterfaceFunction{Interface,F} <: Function
   interface::Interface
   f::F
