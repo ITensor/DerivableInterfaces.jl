@@ -4,6 +4,10 @@ interface(x) = interface(typeof(x))
 interface(::Type) = error("Interface unknown.")
 interface(x1, x_rest...) = combine_interfaces(interface(x1), interface.(x_rest)...)
 
+abstract type AbstractInterface end
+
+(interface::AbstractInterface)(f) = InterfaceFunction(interface, f)
+
 # Adapted from `Base.Broadcast.combine_styles`.
 # Get the combined interfaces of the input objects.
 function combine_interfaces(
@@ -26,7 +30,3 @@ end
 function combine_interface_rule(inter1::AbstractInterface, inter2::AbstractInterface)
   return error("No rule for combining interfaces.")
 end
-
-abstract type AbstractInterface end
-
-(interface::AbstractInterface)(f) = InterfaceFunction(interface, f)
