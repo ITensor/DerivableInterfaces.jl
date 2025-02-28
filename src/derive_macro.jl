@@ -165,9 +165,7 @@ function derive_func_from_types(types::Expr, func::Expr)
     end
     return argname(i)
   end
-  interface = globalref_derive(
-    :(DerivableInterfaces.combine_interfaces($(active_argnames...)))
-  )
+  interface = globalref_derive(:(DerivableInterfaces.interface($(active_argnames...))))
   return derive_interface_func(interface, new_func)
 end
 
