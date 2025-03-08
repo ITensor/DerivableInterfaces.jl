@@ -153,18 +153,9 @@ end
   @interface interface map!(Returns(value), a, a)
 end
 
-using ArrayLayouts: zero!
-
-# `zero!` isn't defined in `Base`, but it is defined in `ArrayLayouts`
-# and is useful for sparse array logic, since it can be used to empty
-# the sparse array storage.
-# We use a single function definition to minimize method ambiguities.
-@interface interface::AbstractArrayInterface function ArrayLayouts.zero!(a::AbstractArray)
-  # More generally, the first codepath could be taking if `zero(eltype(a))`
-  # is defined and the elements are immutable.
-  f = eltype(a) <: Number ? Returns(zero(eltype(a))) : zero!
-  return @interface interface map!(f, a, a)
-end
+# TODO: should this be recursive? `map!(zero!, A, A)` might also work?
+@interface ::AbstractArrayInterface DerivableInterfaces.zero!(A::AbstractArray) =
+  fill!(A, zero(eltype(A)))
 
 # Specialized version of `Base.zero` written in terms of `ArrayLayouts.zero!`.
 # This is friendlier for sparse arrays since `ArrayLayouts.zero!` makes it easier

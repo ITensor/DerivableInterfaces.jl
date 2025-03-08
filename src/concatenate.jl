@@ -32,7 +32,8 @@ using Compat: @compat
 @compat public Concatenated
 
 using Base: promote_eltypeof
-using ..DerivableInterfaces: DerivableInterfaces, AbstractInterface, interface, zero!
+using ..DerivableInterfaces:
+  DerivableInterfaces, AbstractInterface, interface, zero!, arraytype
 
 """
     Concatenated{Interface,Dims,Args<:Tuple}
@@ -76,10 +77,10 @@ end
 
 # allocating the destination container
 # ------------------------------------
-Base.similar(concat::Concatenated) = similar(concat, eltype(cat))
-Base.similar(concat::Concatenated, ::Type{T}) where {T} = similar(concat, T, axes(cat))
+Base.similar(concat::Concatenated) = similar(concat, eltype(concat))
+Base.similar(concat::Concatenated, ::Type{T}) where {T} = similar(concat, T, axes(concat))
 function Base.similar(concat::Concatenated, ::Type{T}, ax) where {T}
-  return similar(interface(concat), T, ax)
+  return similar(arraytype(interface(concat), T), ax)
 end
 
 Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)

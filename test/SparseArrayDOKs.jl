@@ -254,7 +254,7 @@ end
 eachstoredindex(a::SparseArrayDOK) = keys(storage(a))
 storedlength(a::SparseArrayDOK) = length(eachstoredindex(a))
 
-function ArrayLayouts.zero!(a::SparseArrayDOK)
+function DerivableInterfaces.zero!(a::SparseArrayDOK)
   empty!(storage(a))
   return a
 end
