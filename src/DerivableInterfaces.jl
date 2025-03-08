@@ -1,5 +1,7 @@
 module DerivableInterfaces
 
+export Concatenate
+
 include("interface_function.jl")
 include("abstractinterface.jl")
 include("derive_macro.jl")
