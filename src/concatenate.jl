@@ -15,11 +15,6 @@ The various entry points for specializing behavior are:
 
     Base.similar(concat::Concatenated{Interface}, ::Type{T}, axes) where {Interface}
 
-* Implementation for moving one or more arguments into the destionation through
-
-    copy_offset!(dest, shape, catdims, offsets, args...)
-    copy_offset1!(dest, shape, catdims, offsets, x)
-
 * Custom implementations:
 
     Base.copy(concat::Concatenated{Interface}) # custom implementation of cat
@@ -29,7 +24,7 @@ The various entry points for specializing behavior are:
 module Concatenate
 
 using Compat: @compat
-export cat_along
+export concatenate
 @compat public Concatenated
 
 using Base: promote_eltypeof
@@ -66,7 +61,7 @@ end
 dims(::Concatenated{A,D}) where {A,D} = D
 DerivableInterfaces.interface(concat::Concatenated) = concat.interface
 
-concatenated(dims, args...) = concatenated(Val(dims), args)
+concatenated(dims, args...) = concatenated(Val(dims), args...)
 concatenated(dims::Val, args...) = Concatenated(dims, args)
 
 function Base.convert(
@@ -96,22 +91,22 @@ end
 # Main logic
 # ----------
 """
-    cat_along(dims, args...)
+    concatenate(dims, args...)
 
 Concatenate the supplied `args` along dimensions `dims`.
 
 See also [`cat`] and [`cat!`](@ref).
 """
-cat_along(dims, args...) = Base.materialize(concatenated(dims, args...))
+concatenate(dims, args...) = Base.materialize(concatenated(dims, args...))
 
 """
     Concatenate.cat(args...; dims)
 
 Concatenate the supplied `args` along dimensions `dims`.
 
-See also [`cat_along`] and [`cat!`](@ref).
+See also [`concatenate`] and [`cat!`](@ref).
 """
-cat(args...; dims) = cat_along(dims, args...)
+cat(args...; dims) = concatenate(dims, args...)
 Base.materialize(concat::Concatenated) = copy(concat)
 
 """
@@ -141,33 +136,5 @@ function Base.copyto!(dest::AbstractArray, concat::Concatenated{Nothing})
   count(!iszero, catdims)::Int > 1 && zero!(dest)
   return Base.__cat(dest, shape, catdims, concat.args...)
 end
-
-# Array implementation
-# --------------------
-# Write in terms of a generic cat_offset!, which in term aims to specialize on 1 argument
-# at a time via cat_offset1! to avoid having to write too many specializations
-# function cat_offset!(dest, shape, catdims, offsets, x, X...)
-#   dest, newoffsets = cat_offset1!(dest, shape, catdims, offsets, x)
-#   return cat_offset!(dest, shape, catdims, newoffsets, X...)
-# end
-# cat_offset!(dest, shape, catdims, offsets) = dest
-
-# this is the typical specialization point, which is no longer vararg.
-# it simply computes indices and calls out to copy_or_fill!, so if that
-# pattern works you can also overload that function
-# function cat_offset1!(dest, shape, catdims, offsets, x)
-#   inds = ntuple(length(offsets)) do i
-#     (i ≤ length(catdims) && catdims[i]) ? offsets[i] .+ axes(x, i) : 1:shape[i]
-#   end
-#   copy_or_fill!(dest, inds, x)
-#   newoffsets = ntuple(length(offsets)) do i
-#     (i ≤ length(catdims) && catdims[i]) ? offsets[i] + size(x, i) : offsets[i]
-#   end
-#   return dest, newoffsets
-# end
-
-# copy of Base._copy_or_fill!
-# copy_or_fill!(A, inds, x) = fill!(view(A, inds...), x)
-# copy_or_fill!(A, inds, x::AbstractArray) = (A[inds...] = x)
 
 end
