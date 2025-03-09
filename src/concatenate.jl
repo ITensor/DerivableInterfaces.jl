@@ -29,6 +29,7 @@ The various entry points for specializing behavior are:
 module Concatenate
 
 using Compat: @compat
+export cat_along
 @compat public Concatenated
 
 using Base: promote_eltypeof
@@ -65,7 +66,8 @@ end
 dims(::Concatenated{A,D}) where {A,D} = D
 DerivableInterfaces.interface(concat::Concatenated) = concat.interface
 
-concatenated(args...; dims) = Concatenated(Val(dims), args)
+concatenated(dims, args...) = concatenated(Val(dims), args)
+concatenated(dims::Val, args...) = Concatenated(dims, args)
 
 function Base.convert(
   ::Type{Concatenated{NewInterface}}, concat::Concatenated{<:Any,Dims,Args}
@@ -94,13 +96,22 @@ end
 # Main logic
 # ----------
 """
+    cat_along(dims, args...)
+
+Concatenate the supplied `args` along dimensions `dims`.
+
+See also [`cat`] and [`cat!`](@ref).
+"""
+cat_along(dims, args...) = Base.materialize(concatenated(dims, args...))
+
+"""
     Concatenate.cat(args...; dims)
 
 Concatenate the supplied `args` along dimensions `dims`.
 
-See also [`cat!`](@ref).
+See also [`cat_along`] and [`cat!`](@ref).
 """
-cat(args...; dims) = Base.materialize(concatenated(args...; dims))
+cat(args...; dims) = cat_along(dims, args...)
 Base.materialize(concat::Concatenated) = copy(concat)
 
 """
