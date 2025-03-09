@@ -157,11 +157,6 @@ end
 @interface ::AbstractArrayInterface DerivableInterfaces.zero!(A::AbstractArray) =
   fill!(A, zero(eltype(A)))
 
-# TODO: this is very opinionated, but should ultimately work in many cases
-@interface ::AbstractArrayInterface function Base._cat(dims, as::AbstractArray...)
-  return Concatenate.cat(as...; dims)
-end
-
 # Specialized version of `Base.zero` written in terms of `ArrayLayouts.zero!`.
 # This is friendlier for sparse arrays since `ArrayLayouts.zero!` makes it easier
 # to handle the logic of dropping all elements of the sparse array when possible.

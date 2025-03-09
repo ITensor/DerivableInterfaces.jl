@@ -270,7 +270,7 @@ DerivableInterfaces.interface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
 
 # avoid overloading `Base.cat` because of method invalidations
 function Base._cat(dims, args::SparseArrayDOK...)
-  return DerivableInterfaces.Concatenate.cat(args...; dims)
+  return DerivableInterfaces.Concatenate.cat_along(dims, args...)
 end
 
 end
