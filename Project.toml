@@ -1,11 +1,12 @@
 name = "DerivableInterfaces"
 uuid = "6c5e35bf-e59e-4898-b73c-732dcc4ba65f"
 authors = ["ITensor developers <support@itensor.org> and contributors"]
-version = "0.3.17"
+version = "0.4.0"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
+Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 ExproniconLite = "55351af7-c7e9-48d6-89ff-24e801d99491"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
@@ -15,6 +16,7 @@ TypeParameterAccessors = "7e5a90cf-f82e-492e-a09b-e3e26432c138"
 [compat]
 Adapt = "4.1.1"
 ArrayLayouts = "1.11.0"
+Compat = "3.47,4.10"
 ExproniconLite = "0.10.13"
 LinearAlgebra = "1.10"
 MLStyle = "0.4.17"

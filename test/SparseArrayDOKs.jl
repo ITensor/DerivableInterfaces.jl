@@ -254,7 +254,7 @@ end
 eachstoredindex(a::SparseArrayDOK) = keys(storage(a))
 storedlength(a::SparseArrayDOK) = length(eachstoredindex(a))
 
-function ArrayLayouts.zero!(a::SparseArrayDOK)
+function DerivableInterfaces.zero!(a::SparseArrayDOK)
   empty!(storage(a))
   return a
 end
@@ -267,5 +267,10 @@ DerivableInterfaces.interface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
 
 # DerivableInterfaces the interface for the type.
 @derive AnySparseArrayDOK AbstractArrayOps
+
+# avoid overloading `Base.cat` because of method invalidations
+function Base._cat(dims, args::SparseArrayDOK...)
+  return DerivableInterfaces.Concatenate.concatenate(dims, args...)
+end
 
 end

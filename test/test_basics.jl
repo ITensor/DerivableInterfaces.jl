@@ -1,4 +1,4 @@
-using ArrayLayouts: zero!
+using DerivableInterfaces: zero!
 include("SparseArrayDOKs.jl")
 using .SparseArrayDOKs: SparseArrayDOK, storedlength
 using Test: @test, @testset

@@ -153,21 +153,12 @@ end
   @interface interface map!(Returns(value), a, a)
 end
 
-using ArrayLayouts: zero!
+# TODO: should this be recursive? `map!(zero!, A, A)` might also work?
+@interface ::AbstractArrayInterface DerivableInterfaces.zero!(A::AbstractArray) =
+  fill!(A, zero(eltype(A)))
 
-# `zero!` isn't defined in `Base`, but it is defined in `ArrayLayouts`
-# and is useful for sparse array logic, since it can be used to empty
-# the sparse array storage.
-# We use a single function definition to minimize method ambiguities.
-@interface interface::AbstractArrayInterface function ArrayLayouts.zero!(a::AbstractArray)
-  # More generally, the first codepath could be taking if `zero(eltype(a))`
-  # is defined and the elements are immutable.
-  f = eltype(a) <: Number ? Returns(zero(eltype(a))) : zero!
-  return @interface interface map!(f, a, a)
-end
-
-# Specialized version of `Base.zero` written in terms of `ArrayLayouts.zero!`.
-# This is friendlier for sparse arrays since `ArrayLayouts.zero!` makes it easier
+# Specialized version of `Base.zero` written in terms of `zero!`.
+# This is friendlier for sparse arrays since `zero!` makes it easier
 # to handle the logic of dropping all elements of the sparse array when possible.
 # We use a single function definition to minimize method ambiguities.
 @interface interface::AbstractArrayInterface function Base.zero(a::AbstractArray)
@@ -250,102 +241,3 @@ end
 ## @interface ::AbstractMatrixInterface function Base.*(a1, a2)
 ##   return ArrayLayouts.mul(a1, a2)
 ## end
-
-# Concatenation
-
-axis_cat(a1::AbstractUnitRange, a2::AbstractUnitRange) = Base.OneTo(length(a1) + length(a2))
-function axis_cat(
-  a1::AbstractUnitRange, a2::AbstractUnitRange, a_rest::AbstractUnitRange...
-)
-  return axis_cat(axis_cat(a1, a2), a_rest...)
-end
-
-unval(x) = x
-unval(::Val{x}) where {x} = x
-
-function cat_axes(as::AbstractArray...; dims)
-  return ntuple(length(first(axes.(as)))) do dim
-    return if dim in unval(dims)
-      axis_cat(map(axes -> axes[dim], axes.(as))...)
-    else
-      axes(first(as))[dim]
-    end
-  end
-end
-
-function cat! end
-
-# Represents concatenating `args` over `dims`.
-struct Cat{Args<:Tuple{Vararg{AbstractArray}},dims}
-  args::Args
-end
-to_cat_dims(dim::Integer) = Int(dim)
-to_cat_dims(dim::Int) = (dim,)
-to_cat_dims(dims::Val) = to_cat_dims(unval(dims))
-to_cat_dims(dims::Tuple) = dims
-Cat(args::AbstractArray...; dims) = Cat{typeof(args),to_cat_dims(dims)}(args)
-cat_dims(::Cat{<:Any,dims}) where {dims} = dims
-
-function Base.axes(a::Cat)
-  return cat_axes(a.args...; dims=cat_dims(a))
-end
-Base.eltype(a::Cat) = promote_type(eltype.(a.args)...)
-function Base.similar(a::Cat)
-  ax = axes(a)
-  elt = eltype(a)
-  # TODO: This drops GPU information, maybe use MemoryLayout?
-  return similar(arraytype(interface(a.args...), elt), ax)
-end
-
-# https://github.com/JuliaLang/julia/blob/v1.11.1/base/abstractarray.jl#L1748-L1857
-# https://docs.julialang.org/en/v1/base/arrays/#Concatenation-and-permutation
-# This is very similar to the `Base.cat` implementation but handles zero values better.
-function cat_offset!(
-  a_dest::AbstractArray, offsets, a1::AbstractArray, a_rest::AbstractArray...; dims
-)
-  inds = ntuple(ndims(a_dest)) do dim
-    dim in unval(dims) ? offsets[dim] .+ axes(a1, dim) : axes(a_dest, dim)
-  end
-  a_dest[inds...] = a1
-  new_offsets = ntuple(ndims(a_dest)) do dim
-    dim in unval(dims) ? offsets[dim] + size(a1, dim) : offsets[dim]
-  end
-  cat_offset!(a_dest, new_offsets, a_rest...; dims)
-  return a_dest
-end
-function cat_offset!(a_dest::AbstractArray, offsets; dims)
-  return a_dest
-end
-
-@interface ::AbstractArrayInterface function cat!(
-  a_dest::AbstractArray, as::AbstractArray...; dims
-)
-  offsets = ntuple(zero, ndims(a_dest))
-  # TODO: Fill `a_dest` with zeros if needed using `zero!`.
-  cat_offset!(a_dest, offsets, as...; dims)
-  return a_dest
-end
-
-function cat_along(dims, as::AbstractArray...)
-  return @interface interface(as...) cat_along(dims, as...)
-end
-
-@interface interface::AbstractArrayInterface function cat_along(dims, as::AbstractArray...)
-  a_dest = similar(Cat(as...; dims))
-  @interface interface cat!(a_dest, as...; dims)
-  return a_dest
-end
-
-@interface interface::AbstractArrayInterface function Base.cat(as::AbstractArray...; dims)
-  return @interface interface cat_along(dims, as...)
-end
-
-# TODO: Use `@derive` instead:
-# ```julia
-# @derive (T=AbstractArray,) begin
-#   cat!(a_dest::AbstractArray, as::T...; dims)
-# end
-# ```
-function cat!(a_dest::AbstractArray, as::AbstractArray...; dims)
-  return @interface interface(as...) cat!(a_dest, as...; dims)
-end
