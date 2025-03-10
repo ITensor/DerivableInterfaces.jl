@@ -25,7 +25,7 @@ module Concatenate
 
 using Compat: @compat
 export concatenate
-@compat public Concatenated
+@compat public Concatenated, cat, cat!, concatenated
 
 using Base: promote_eltypeof
 using ..DerivableInterfaces:
