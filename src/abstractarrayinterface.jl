@@ -157,8 +157,8 @@ end
 @interface ::AbstractArrayInterface DerivableInterfaces.zero!(A::AbstractArray) =
   fill!(A, zero(eltype(A)))
 
-# Specialized version of `Base.zero` written in terms of `ArrayLayouts.zero!`.
-# This is friendlier for sparse arrays since `ArrayLayouts.zero!` makes it easier
+# Specialized version of `Base.zero` written in terms of `zero!`.
+# This is friendlier for sparse arrays since `zero!` makes it easier
 # to handle the logic of dropping all elements of the sparse array when possible.
 # We use a single function definition to minimize method ambiguities.
 @interface interface::AbstractArrayInterface function Base.zero(a::AbstractArray)
