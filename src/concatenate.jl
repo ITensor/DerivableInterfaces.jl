@@ -31,31 +31,38 @@ using Base: promote_eltypeof
 using ..DerivableInterfaces:
   DerivableInterfaces, AbstractInterface, interface, zero!, arraytype
 
+unval(x) = x
+unval(::Val{x}) where {x} = x
+
+function _Concatenated end
+
 """
-    Concatenated{Interface,Dims,Args<:Tuple}
+    Concatenated{Interface,Dims,Axes,Args<:Tuple}
 
 Lazy representation of the concatenation of various `Args` along `Dims`, in order to provide
 hooks to customize the implementation.
 """
-struct Concatenated{Interface,Dims,Args<:Tuple}
+struct Concatenated{Interface,Dims,Axes,Args<:Tuple}
   interface::Interface
   dims::Val{Dims}
   args::Args
+  axes::Axes
+  global @inline function _Concatenated(
+    interface::Interface, dims::Val{Dims}, args::Args
+  ) where {Interface,Dims,Args<:Tuple}
+    ax = cat_axes(dims, args...)
+    return new{Interface,Dims,typeof(ax),Args}(interface, dims, args, ax)
+  end
+end
 
-  function Concatenated(
-    interface::Union{Nothing,AbstractInterface}, dims::Val{Dims}, args::Tuple
-  ) where {Dims}
-    return new{typeof(interface),Dims,typeof(args)}(interface, dims, args)
-  end
-  function Concatenated(dims, args::Tuple)
-    return Concatenated(interface(args...), dims, args)
-  end
-  function Concatenated{Interface}(dims, args) where {Interface}
-    return Concatenated(Interface(), dims, args)
-  end
-  function Concatenated{Interface,Dims}(args) where {Interface,Dims}
-    return new{Interface,Dims,typeof(args)}(Interface(), Val(Dims), args)
-  end
+function Concatenated(interface::Union{Nothing,AbstractInterface}, dims::Val, args::Tuple)
+  return _Concatenated(interface, dims, args)
+end
+function Concatenated(dims::Val, args::Tuple)
+  return Concatenated(interface(args...), dims, args)
+end
+function Concatenated{Interface}(dims::Val, args) where {Interface}
+  return Concatenated(Interface(), dims, args)
 end
 
 dims(::Concatenated{A,D}) where {A,D} = D
@@ -80,13 +87,40 @@ function Base.similar(concat::Concatenated, ::Type{T}, ax) where {T}
   return similar(arraytype(interface(concat), T), ax)
 end
 
-Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
-
-# For now, simply couple back to base implementation
-function Base.axes(concat::Concatenated)
-  catdims = Base.dims2cat(dims(concat))
-  return Base.cat_size_shape(catdims, concat.args...)
+function cat_axis(
+  a1::AbstractUnitRange, a2::AbstractUnitRange, a_rest::AbstractUnitRange...
+)
+  return cat_axis(cat_axis(a1, a2), a_rest...)
 end
+cat_axis(a1::AbstractUnitRange, a2::AbstractUnitRange) = Base.OneTo(length(a1) + length(a2))
+
+function cat_ndims(dims, as::AbstractArray...)
+  return max(maximum(dims), maximum(ndims, as))
+end
+function cat_ndims(dims::Val, as::AbstractArray...)
+  return cat_ndims(unval(dims), as...)
+end
+
+function cat_axes(dims, as::AbstractArray...)
+  return ntuple(cat_ndims(dims, as...)) do dim
+    if dim ∉ dims
+      return axes(first(as), dim)
+    end
+    return cat_axis(map(ax -> get(ax, dim, Base.OneTo(1)), axes.(as))...)
+  end
+end
+function cat_axes(dims::Val, as::AbstractArray...)
+  return cat_axes(unval(dims), as...)
+end
+
+function Base.axes(concat::Concatenated)
+  !isnothing(concat.axes) && return concat.axes
+  return cat_axes(dims(concat), concat.args...)
+end
+
+Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
+Base.size(concat::Concatenated) = length.(axes(concat))
+Base.ndims(concat::Concatenated) = length(axes(concat))
 
 # Main logic
 # ----------

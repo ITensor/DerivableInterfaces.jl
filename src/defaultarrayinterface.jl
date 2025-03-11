@@ -30,3 +30,7 @@ end
 )
   return Base.mapreduce(f, op, as...; kwargs...)
 end
+
+function arraytype(::DefaultArrayInterface, T::Type)
+  return Array{T}
+end
