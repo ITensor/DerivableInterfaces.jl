@@ -159,16 +159,56 @@ Base.copy(concat::Concatenated) = copyto!(similar(concat), concat)
 # default falls back to replacing interface with Nothing
 # this permits specializing on typeof(dest) without ambiguities
 # Note: this needs to be defined for AbstractArray specifically to avoid ambiguities with Base.
-@inline Base.copyto!(dest::AbstractArray, concat::Concatenated) =
-  copyto!(dest, convert(Concatenated{Nothing}, concat))
+@inline function Base.copyto!(dest::AbstractArray, concat::Concatenated)
+  return copyto!(dest, convert(Concatenated{Nothing}, concat))
+end
+
+_copy_or_fill!(A, inds, x) = fill!(view(A, inds...), x)
+_copy_or_fill!(A, inds, x::AbstractArray) = (A[inds...] = x)
+
+cat_size(A) = (1,)
+cat_size(A::AbstractArray) = size(A)
+cat_size(A, d) = 1
+cat_size(A::AbstractArray, d) = size(A, d)
+
+cat_indices(A, d) = Base.OneTo(1)
+cat_indices(A::AbstractArray, d) = axes(A, d)
+
+function __cat!(A, shape, catdims, X...)
+  return __cat_offset!(A, shape, catdims, ntuple(zero, length(shape)), X...)
+end
+function __cat_offset!(A, shape, catdims, offsets, x, X...)
+  # splitting the "work" on x from X... may reduce latency (fewer costly specializations)
+  newoffsets = __cat_offset1!(A, shape, catdims, offsets, x)
+  return __cat_offset!(A, shape, catdims, newoffsets, X...)
+end
+__cat_offset!(A, shape, catdims, offsets) = A
+function __cat_offset1!(A, shape, catdims, offsets, x)
+  inds = ntuple(length(offsets)) do i
+    (i <= length(catdims) && catdims[i]) ? offsets[i] .+ cat_indices(x, i) : 1:shape[i]
+  end
+  _copy_or_fill!(A, inds, x)
+  newoffsets = ntuple(length(offsets)) do i
+    (i <= length(catdims) && catdims[i]) ? offsets[i] + cat_size(x, i) : offsets[i]
+  end
+  return newoffsets
+end
+
+dims2cat(dims::Val) = dims2cat(unval(dims))
+function dims2cat(dims)
+  if any(≤(0), dims)
+    throw(ArgumentError("All cat dimensions must be positive integers, but got $dims"))
+  end
+  return ntuple(in(dims), maximum(dims))
+end
 
 # couple back to Base implementation if no specialization exists:
 # https://github.com/JuliaLang/julia/blob/29da86bb983066dd076439c2c7bc5e28dbd611bb/base/abstractarray.jl#L1852
 function Base.copyto!(dest::AbstractArray, concat::Concatenated{Nothing})
-  catdims = Base.dims2cat(dims(concat))
-  shape = Base.cat_size_shape(catdims, concat.args...)
+  catdims = dims2cat(dims(concat))
+  shape = size(concat)
   count(!iszero, catdims)::Int > 1 && zero!(dest)
-  return Base.__cat(dest, shape, catdims, concat.args...)
+  return __cat!(dest, shape, catdims, concat.args...)
 end
 
 end
