@@ -48,35 +48,41 @@ struct Concatenated{Interface,Dims,Axes,Args<:Tuple}
   args::Args
   axes::Axes
   global @inline function _Concatenated(
-    interface::Interface, dims::Val{Dims}, args::Args
-  ) where {Interface,Dims,Args<:Tuple}
-    ax = cat_axes(dims, args...)
-    return new{Interface,Dims,typeof(ax),Args}(interface, dims, args, ax)
+    interface::Interface, dims::Val{Dims}, args::Args, axes::Axes
+  ) where {Interface,Dims,Args<:Tuple,Axes}
+    return new{Interface,Dims,Axes,Args}(interface, dims, args, axes)
   end
 end
 
-function Concatenated(interface::Union{Nothing,AbstractInterface}, dims::Val, args::Tuple)
-  return _Concatenated(interface, dims, args)
+function Concatenated(
+  interface::Union{Nothing,AbstractInterface},
+  dims::Val,
+  args::Tuple,
+  axes=cat_axes(dims, args...),
+)
+  return _Concatenated(interface, dims, args, axes)
 end
-function Concatenated(dims::Val, args::Tuple)
+function Concatenated(dims::Val, args::Tuple, axes=cat_axes(dims, args...))
   return Concatenated(interface(args...), dims, args)
 end
-function Concatenated{Interface}(dims::Val, args) where {Interface}
+function Concatenated{Interface}(
+  dims::Val, args::Tuple, axes=cat_axes(dims, args...)
+) where {Interface}
   return Concatenated(Interface(), dims, args)
 end
 
-dims(::Concatenated{A,D}) where {A,D} = D
-DerivableInterfaces.interface(concat::Concatenated) = concat.interface
+dims(::Concatenated{<:Any,D}) where {D} = D
+DerivableInterfaces.interface(concat::Concatenated) = getfield(concat, :interface)
 
 concatenated(dims, args...) = concatenated(Val(dims), args...)
 concatenated(dims::Val, args...) = Concatenated(dims, args)
 
 function Base.convert(
-  ::Type{Concatenated{NewInterface}}, concat::Concatenated{<:Any,Dims,Args}
-) where {NewInterface,Dims,Args}
+  ::Type{Concatenated{NewInterface}}, concat::Concatenated{<:Any,Dims,Axes,Args}
+) where {NewInterface,Dims,Axes,Args}
   return Concatenated{NewInterface}(
-    concat.dims, concat.args
-  )::Concatenated{NewInterface,Dims,Args}
+    concat.dims, concat.args, concat.axes
+  )::Concatenated{NewInterface,Dims,Axes,Args}
 end
 
 # allocating the destination container
@@ -101,22 +107,16 @@ function cat_ndims(dims::Val, as::AbstractArray...)
   return cat_ndims(unval(dims), as...)
 end
 
-function cat_axes(dims, as::AbstractArray...)
-  return ntuple(cat_ndims(dims, as...)) do dim
-    if dim ∉ dims
-      return axes(first(as), dim)
-    end
-    return cat_axis(map(ax -> get(ax, dim, Base.OneTo(1)), axes.(as))...)
+function cat_axes(dims, a::AbstractArray, as::AbstractArray...)
+  return ntuple(cat_ndims(dims, a, as...)) do dim
+    return dim in dims ? cat_axis(map(Base.Fix2(axes, dim), (a, as...))...) : axes(a, dim)
   end
 end
 function cat_axes(dims::Val, as::AbstractArray...)
   return cat_axes(unval(dims), as...)
 end
 
-function Base.axes(concat::Concatenated)
-  !isnothing(concat.axes) && return concat.axes
-  return cat_axes(dims(concat), concat.args...)
-end
+Base.axes(concat::Concatenated) = getfield(concat, :axes)
 
 Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
 Base.size(concat::Concatenated) = length.(axes(concat))
@@ -163,6 +163,8 @@ Base.copy(concat::Concatenated) = copyto!(similar(concat), concat)
   return copyto!(dest, convert(Concatenated{Nothing}, concat))
 end
 
+# The following is largely copied from the Base implementation of `Base.cat`, see:
+# https://github.com/JuliaLang/julia/blob/885b1cd875f101f227b345f681cc36879124d80d/base/abstractarray.jl#L1778-L1887
 _copy_or_fill!(A, inds, x) = fill!(view(A, inds...), x)
 _copy_or_fill!(A, inds, x::AbstractArray) = (A[inds...] = x)
 
@@ -202,8 +204,6 @@ function dims2cat(dims)
   return ntuple(in(dims), maximum(dims))
 end
 
-# couple back to Base implementation if no specialization exists:
-# https://github.com/JuliaLang/julia/blob/29da86bb983066dd076439c2c7bc5e28dbd611bb/base/abstractarray.jl#L1852
 function Base.copyto!(dest::AbstractArray, concat::Concatenated{Nothing})
   catdims = dims2cat(dims(concat))
   shape = size(concat)
