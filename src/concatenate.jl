@@ -53,19 +53,13 @@ struct Concatenated{Interface,Dims,Args<:Tuple}
   end
 end
 
-function Concatenated(
-  interface::Union{Nothing,AbstractInterface},
-  dims::Val,
-  args::Tuple,
-)
+function Concatenated(interface::Union{Nothing,AbstractInterface}, dims::Val, args::Tuple)
   return _Concatenated(interface, dims, args)
 end
 function Concatenated(dims::Val, args::Tuple)
   return Concatenated(interface(args...), dims, args)
 end
-function Concatenated{Interface}(
-  dims::Val, args::Tuple
-) where {Interface}
+function Concatenated{Interface}(dims::Val, args::Tuple) where {Interface}
   return Concatenated(Interface(), dims, args)
 end
 
