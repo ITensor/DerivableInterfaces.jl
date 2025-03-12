@@ -37,20 +37,19 @@ unval(::Val{x}) where {x} = x
 function _Concatenated end
 
 """
-    Concatenated{Interface,Dims,Axes,Args<:Tuple}
+    Concatenated{Interface,Dims,Args<:Tuple}
 
 Lazy representation of the concatenation of various `Args` along `Dims`, in order to provide
 hooks to customize the implementation.
 """
-struct Concatenated{Interface,Dims,Axes,Args<:Tuple}
+struct Concatenated{Interface,Dims,Args<:Tuple}
   interface::Interface
   dims::Val{Dims}
   args::Args
-  axes::Axes
   global @inline function _Concatenated(
-    interface::Interface, dims::Val{Dims}, args::Args, axes::Axes
-  ) where {Interface,Dims,Args<:Tuple,Axes}
-    return new{Interface,Dims,Axes,Args}(interface, dims, args, axes)
+    interface::Interface, dims::Val{Dims}, args::Args
+  ) where {Interface,Dims,Args<:Tuple}
+    return new{Interface,Dims,Args}(interface, dims, args)
   end
 end
 
@@ -58,15 +57,14 @@ function Concatenated(
   interface::Union{Nothing,AbstractInterface},
   dims::Val,
   args::Tuple,
-  axes=cat_axes(dims, args...),
 )
-  return _Concatenated(interface, dims, args, axes)
+  return _Concatenated(interface, dims, args)
 end
-function Concatenated(dims::Val, args::Tuple, axes=cat_axes(dims, args...))
+function Concatenated(dims::Val, args::Tuple)
   return Concatenated(interface(args...), dims, args)
 end
 function Concatenated{Interface}(
-  dims::Val, args::Tuple, axes=cat_axes(dims, args...)
+  dims::Val, args::Tuple
 ) where {Interface}
   return Concatenated(Interface(), dims, args)
 end
@@ -78,11 +76,11 @@ concatenated(dims, args...) = concatenated(Val(dims), args...)
 concatenated(dims::Val, args...) = Concatenated(dims, args)
 
 function Base.convert(
-  ::Type{Concatenated{NewInterface}}, concat::Concatenated{<:Any,Dims,Axes,Args}
-) where {NewInterface,Dims,Axes,Args}
+  ::Type{Concatenated{NewInterface}}, concat::Concatenated{<:Any,Dims,Args}
+) where {NewInterface,Dims,Args}
   return Concatenated{NewInterface}(
-    concat.dims, concat.args, concat.axes
-  )::Concatenated{NewInterface,Dims,Axes,Args}
+    concat.dims, concat.args
+  )::Concatenated{NewInterface,Dims,Args}
 end
 
 # allocating the destination container
@@ -116,9 +114,8 @@ function cat_axes(dims::Val, as::AbstractArray...)
   return cat_axes(unval(dims), as...)
 end
 
-Base.axes(concat::Concatenated) = getfield(concat, :axes)
-
 Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
+Base.axes(concat::Concatenated) = cat_axes(dims(concat), concat.args...)
 Base.size(concat::Concatenated) = length.(axes(concat))
 Base.ndims(concat::Concatenated) = length(axes(concat))
 
@@ -155,13 +152,6 @@ end
 Base.materialize!(dest, concat::Concatenated) = copyto!(dest, concat)
 
 Base.copy(concat::Concatenated) = copyto!(similar(concat), concat)
-
-# default falls back to replacing interface with Nothing
-# this permits specializing on typeof(dest) without ambiguities
-# Note: this needs to be defined for AbstractArray specifically to avoid ambiguities with Base.
-@inline function Base.copyto!(dest::AbstractArray, concat::Concatenated)
-  return copyto!(dest, convert(Concatenated{Nothing}, concat))
-end
 
 # The following is largely copied from the Base implementation of `Base.cat`, see:
 # https://github.com/JuliaLang/julia/blob/885b1cd875f101f227b345f681cc36879124d80d/base/abstractarray.jl#L1778-L1887
@@ -202,6 +192,13 @@ function dims2cat(dims)
     throw(ArgumentError("All cat dimensions must be positive integers, but got $dims"))
   end
   return ntuple(in(dims), maximum(dims))
+end
+
+# default falls back to replacing interface with Nothing
+# this permits specializing on typeof(dest) without ambiguities
+# Note: this needs to be defined for AbstractArray specifically to avoid ambiguities with Base.
+@inline function Base.copyto!(dest::AbstractArray, concat::Concatenated)
+  return copyto!(dest, convert(Concatenated{Nothing}, concat))
 end
 
 function Base.copyto!(dest::AbstractArray, concat::Concatenated{Nothing})
