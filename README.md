@@ -23,6 +23,12 @@ not share convenient abstact supertypes, such as a sparse array object and wrapp
 array. Like in `Moshi.jl` and Rust's derive functionality, traits are simply sets of functions
 that can be derived for a certain type.
 
+## Support
+
+<img src="docs/src/assets/CCQ.png" width="20%" alt="Flatiron Center for Computational Quantum Physics logo.">
+
+DerivableInterfaces.jl is supported by the Flatiron Institute, a division of the Simons Foundation.
+
 ## Installation instructions
 
 This package resides in the `ITensor/ITensorRegistry` local registry.
