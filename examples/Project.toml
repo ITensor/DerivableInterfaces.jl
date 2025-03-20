@@ -4,4 +4,4 @@ DerivableInterfaces = "6c5e35bf-e59e-4898-b73c-732dcc4ba65f"
 
 [compat]
 ArrayLayouts = "1"
-DerivableInterfaces = "0.3"
+DerivableInterfaces = "0.4"
