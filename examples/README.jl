@@ -23,6 +23,12 @@
 # array. Like in `Moshi.jl` and Rust's derive functionality, traits are simply sets of functions
 # that can be derived for a certain type.
 
+# ## Support
+#
+# {CCQ_LOGO}
+#
+# DerivableInterfaces.jl is supported by the Flatiron Institute, a division of the Simons Foundation.
+
 # ## Installation instructions
 
 # This package resides in the `ITensor/ITensorRegistry` local registry.
