@@ -14,7 +14,7 @@ makedocs(;
   format=Documenter.HTML(;
     canonical="https://ITensor.github.io/DerivableInterfaces.jl",
     edit_link="main",
-    assets=String[],
+    assets=["assets/favicon.ico"],
   ),
   pages=["Home" => "index.md", "Reference" => "reference.md"],
 )
