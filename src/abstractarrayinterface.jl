@@ -48,7 +48,7 @@ end
 end
 
 # Linear indexing.
-@interface interface ::AbstractArrayInterface function Base.getindex(
+@interface interface::AbstractArrayInterface function Base.getindex(
   a::AbstractArray, I::Int
 )
   return @interface interface getindex(a, CartesianIndices(a)[I])
@@ -62,7 +62,7 @@ end
 end
 
 # Linear indexing.
-@interface interface ::AbstractArrayInterface function Base.setindex!(
+@interface interface::AbstractArrayInterface function Base.setindex!(
   a::AbstractArray, value, I::Int
 )
   return @interface interface setindex!(a, value, CartesianIndices(a)[I])
@@ -154,8 +154,9 @@ end
 end
 
 # TODO: should this be recursive? `map!(zero!, A, A)` might also work?
-@interface ::AbstractArrayInterface DerivableInterfaces.zero!(A::AbstractArray) =
-  fill!(A, zero(eltype(A)))
+@interface ::AbstractArrayInterface DerivableInterfaces.zero!(A::AbstractArray) = fill!(
+  A, zero(eltype(A))
+)
 
 # Specialized version of `Base.zero` written in terms of `zero!`.
 # This is friendlier for sparse arrays since `zero!` makes it easier

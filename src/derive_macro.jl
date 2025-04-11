@@ -234,7 +234,7 @@ end
 ```
 =#
 function derive_trait(type::Union{Symbol,Expr}, trait::Symbol)
-  types = :((T=$type,))
+  types = :((T=($type),))
   funcs = Expr(:block, derive(Val(trait), :T).args...)
   return derive_funcs(types, funcs)
 end
