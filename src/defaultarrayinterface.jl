@@ -48,3 +48,6 @@ end
 function arraytype(::DefaultArrayInterface{N}, T::Type) where {N}
   return Array{T,N}
 end
+function arraytype(::DefaultArrayInterface{Any}, T::Type)
+  return Array{T}
+end

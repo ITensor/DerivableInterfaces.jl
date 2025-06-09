@@ -1,5 +1,5 @@
 using Test: @inferred, @testset, @test
-using DerivableInterfaces: @interface, DefaultArrayInterface, interface
+using DerivableInterfaces: @interface, DefaultArrayInterface, arraytype, interface
 
 # function wrappers to test type-stability
 _getindex(A, i...) = @interface DefaultArrayInterface() A[i...]
@@ -29,6 +29,18 @@ end
   A = zeros(3)
   a = @inferred _mapreduce(Returns(2), +, A)
   @test a == mapreduce(Returns(2), +, A)
+end
+
+@testset "DefaultArrayInterface" begin
+  @test DefaultArrayInterface() === DefaultArrayInterface{Any}()
+  @test DefaultArrayInterface(Val(2)) === DefaultArrayInterface{2}()
+  @test DefaultArrayInterface{Any}(Val(2)) === DefaultArrayInterface{2}()
+  @test DefaultArrayInterface{3}(Val(2)) === DefaultArrayInterface{2}()
+end
+
+@testset "arraytype" begin
+  @test arraytype(DefaultArrayInterface{2}(), Float32) == Matrix{Float32}
+  @test arraytype(DefaultArrayInterface(), Float32) == Array{Float32}
 end
 
 @testset "Broadcast.DefaultArrayStyle" begin
