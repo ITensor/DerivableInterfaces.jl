@@ -47,32 +47,31 @@ function _Concatenated end
 Lazy representation of the concatenation of various `Args` along `Dims`, in order to provide
 hooks to customize the implementation.
 """
-struct Concatenated{Interface<:Union{AbstractArrayInterface,Nothing},Dims,Args<:Tuple,N}
+struct Concatenated{Interface<:Union{AbstractArrayInterface,Nothing},Dims,Args<:Tuple}
   interface::Interface
   dims::Val{Dims}
   args::Args
   global @inline function _Concatenated(
-    interface::Interface, dims::Val{Dims}, args::Args, ndims::Val{N}
-  ) where {Interface<:Union{AbstractArrayInterface,Nothing},Dims,Args<:Tuple,N}
-    return new{Interface,Dims,Args,N}(interface, dims, args)
+    interface::Interface, dims::Val{Dims}, args::Args
+  ) where {Interface<:Union{AbstractArrayInterface,Nothing},Dims,Args<:Tuple}
+    return new{Interface,Dims,Args}(interface, dims, args)
   end
 end
 
 function Concatenated(interface::Nothing, dims::Val, args::Tuple)
-  N = cat_ndims(dims, args...)
-  return _Concatenated(interface, dims, args, Val(N))
+  return _Concatenated(interface, dims, args)
 end
 function Concatenated(interface::AbstractArrayInterface, dims::Val, args::Tuple)
   N = cat_ndims(dims, args...)
-  return _Concatenated(typeof(interface)(Val(N)), dims, args, Val(N))
+  return _Concatenated(typeof(interface)(Val(N)), dims, args)
 end
 function Concatenated(dims::Val, args::Tuple)
   N = cat_ndims(dims, args...)
-  return _Concatenated(typeof(interface(args...))(Val(N)), dims, args, Val(N))
+  return _Concatenated(typeof(interface(args...))(Val(N)), dims, args)
 end
 function Concatenated{Interface}(dims::Val, args::Tuple) where {Interface}
   N = cat_ndims(dims, args...)
-  return _Concatenated(set_interface_dims(Interface, Val(N)), dims, args, Val(N))
+  return _Concatenated(set_interface_dims(Interface, Val(N)), dims, args)
 end
 
 dims(::Concatenated{<:Any,D}) where {D} = D
@@ -94,7 +93,7 @@ end
 Base.similar(concat::Concatenated) = similar(concat, eltype(concat))
 Base.similar(concat::Concatenated, ::Type{T}) where {T} = similar(concat, T, axes(concat))
 function Base.similar(concat::Concatenated, ::Type{T}, ax) where {T}
-  return similar(arraytype(typeof(interface(concat))(Val(ndims(concat))), T), ax)
+  return similar(arraytype(interface(concat), T), ax)
 end
 
 function cat_axis(
@@ -123,8 +122,7 @@ end
 Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
 Base.axes(concat::Concatenated) = cat_axes(dims(concat), concat.args...)
 Base.size(concat::Concatenated) = length.(axes(concat))
-Base.ndims(concat::Concatenated) = ndims(typeof(concat))
-Base.ndims(::Type{<:Concatenated{<:Any,<:Any,<:Any,N}}) where {N} = N
+Base.ndims(concat::Concatenated) = length(axes(concat))
 
 # Main logic
 # ----------
