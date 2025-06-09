@@ -1,10 +1,24 @@
-# TODO: Add `ndims` type parameter.
-struct DefaultArrayInterface <: AbstractArrayInterface end
+struct DefaultArrayInterface{N} <: AbstractArrayInterface{N} end
+
+DefaultArrayInterface() = DefaultArrayInterface{Any}()
+DefaultArrayInterface(::Val{N}) where {N} = DefaultArrayInterface{N}()
+DefaultArrayInterface{M}(::Val{N}) where {M,N} = DefaultArrayInterface{N}()
 
 using TypeParameterAccessors: parenttype
 function interface(a::Type{<:AbstractArray})
-  parenttype(a) === a && return DefaultArrayInterface()
+  parenttype(a) === a && return DefaultArrayInterface{ndims(a)}()
   return interface(parenttype(a))
+end
+
+function combine_interface_rule(
+  interface1::DefaultArrayInterface{N}, interface2::DefaultArrayInterface{N}
+) where {N}
+  return DefaultArrayInterface{N}()
+end
+function combine_interface_rule(
+  interface1::DefaultArrayInterface, interface2::DefaultArrayInterface
+)
+  return DefaultArrayInterface{Any}()
 end
 
 @interface ::DefaultArrayInterface function Base.getindex(
@@ -31,6 +45,6 @@ end
   return Base.mapreduce(f, op, as...; kwargs...)
 end
 
-function arraytype(::DefaultArrayInterface, T::Type)
-  return Array{T}
+function arraytype(::DefaultArrayInterface{N}, T::Type) where {N}
+  return Array{T,N}
 end

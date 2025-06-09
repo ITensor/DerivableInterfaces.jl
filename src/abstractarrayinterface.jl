@@ -1,19 +1,22 @@
 # TODO: Add `ndims` type parameter.
-abstract type AbstractArrayInterface <: AbstractInterface end
+abstract type AbstractArrayInterface{N} <: AbstractInterface end
 
+function interface(::Type{<:Broadcast.AbstractArrayStyle{N}}) where {N}
+  return DefaultArrayInterface{N}()
+end
 function interface(::Type{<:Broadcast.AbstractArrayStyle})
   return DefaultArrayInterface()
 end
 
-function interface(::Type{<:Broadcast.Broadcasted{Nothing}})
-  return DefaultArrayInterface()
+function interface(BC::Type{<:Broadcast.Broadcasted{Nothing}})
+  return DefaultArrayInterface{ndims(BC)}()
 end
 
 function interface(::Type{<:Broadcast.Broadcasted{<:Style}}) where {Style}
   return interface(Style)
 end
 
-# TODO: Define as `Array{T}`.
+# TODO: Define as `Array{T,N}`.
 arraytype(::AbstractArrayInterface, T::Type) = error("Not implemented.")
 
 using ArrayLayouts: ArrayLayouts

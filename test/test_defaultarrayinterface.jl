@@ -33,6 +33,7 @@ end
 
 @testset "Broadcast.DefaultArrayStyle" begin
   @test interface(Broadcast.DefaultArrayStyle) == DefaultArrayInterface()
+  @test interface(Broadcast.DefaultArrayStyle{2}) == DefaultArrayInterface{2}()
   @test interface(Broadcast.Broadcasted(nothing, +, (randn(2), randn(2)))) ==
-    DefaultArrayInterface()
+    DefaultArrayInterface{1}()
 end
