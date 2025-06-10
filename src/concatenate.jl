@@ -52,26 +52,18 @@ struct Concatenated{Interface,Dims,Args<:Tuple}
   end
 end
 
-function Concatenated(interface::Nothing, dims::Val, args::Tuple)
+function Concatenated(
+  interface::Union{AbstractArrayInterface,Nothing}, dims::Val, args::Tuple
+)
   return _Concatenated(interface, dims, args)
 end
-function Concatenated(interface::AbstractArrayInterface, dims::Val, args::Tuple)
-  N = cat_ndims(dims, args...)
-  return _Concatenated(typeof(interface)(Val(N)), dims, args)
-end
 function Concatenated(dims::Val, args::Tuple)
-  return Concatenated(interface(args...), dims, args)
-end
-function Concatenated{Nothing}(dims::Val, args::Tuple)
-  return _Concatenated(nothing, dims, args)
+  return Concatenated(cat_interface(dims, args...), dims, args)
 end
 function Concatenated{Interface}(
   dims::Val, args::Tuple
-) where {N,Interface<:AbstractArrayInterface{N}}
-  (N === Any) ||
-    (N == cat_ndims(dims, args...)) ||
-    throw(ArgumentError("Input interface type has incorrect `ndims`."))
-  return _Concatenated(Interface(), dims, args)
+) where {Interface<:Union{AbstractArrayInterface,Nothing}}
+  return Concatenated(Interface(), dims, args)
 end
 
 dims(::Concatenated{<:Any,D}) where {D} = D
@@ -120,6 +112,11 @@ function cat_axes(dims, a::AbstractArray, as::AbstractArray...)
 end
 function cat_axes(dims::Val, as::AbstractArray...)
   return cat_axes(unval(dims), as...)
+end
+
+function cat_interface(dims, as::AbstractArray...)
+  N = cat_ndims(dims, as...)
+  return typeof(interface(as...))(Val(N))
 end
 
 Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
