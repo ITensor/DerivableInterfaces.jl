@@ -33,11 +33,6 @@ using ..DerivableInterfaces: DerivableInterfaces, AbstractArrayInterface, interf
 unval(x) = x
 unval(::Val{x}) where {x} = x
 
-set_interface_ndims(::Type{Nothing}, ::Val{N}) where {N} = nothing
-function set_interface_ndims(Interface::Type{<:AbstractArrayInterface}, ::Val{N}) where {N}
-  return Interface(Val(N))
-end
-
 function _Concatenated end
 
 """
