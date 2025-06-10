@@ -65,12 +65,18 @@ function Concatenated(interface::AbstractArrayInterface, dims::Val, args::Tuple)
   return _Concatenated(typeof(interface)(Val(N)), dims, args)
 end
 function Concatenated(dims::Val, args::Tuple)
-  N = cat_ndims(dims, args...)
-  return _Concatenated(typeof(interface(args...))(Val(N)), dims, args)
+  return Concatenated(interface(args...), dims, args)
 end
-function Concatenated{Interface}(dims::Val, args::Tuple) where {Interface}
-  N = cat_ndims(dims, args...)
-  return _Concatenated(set_interface_ndims(Interface, Val(N)), dims, args)
+function Concatenated{Nothing}(dims::Val, args::Tuple)
+  return _Concatenated(nothing, dims, args)
+end
+function Concatenated{Interface}(
+  dims::Val, args::Tuple
+) where {N,Interface<:AbstractArrayInterface{N}}
+  (N === Any) ||
+    (N == cat_ndims(dims, args...)) ||
+    throw(ArgumentError("Input interface type has incorrect `ndims`."))
+  return _Concatenated(Interface(), dims, args)
 end
 
 dims(::Concatenated{<:Any,D}) where {D} = D
@@ -124,7 +130,7 @@ end
 Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
 Base.axes(concat::Concatenated) = cat_axes(dims(concat), concat.args...)
 Base.size(concat::Concatenated) = length.(axes(concat))
-Base.ndims(concat::Concatenated) = length(axes(concat))
+Base.ndims(concat::Concatenated) = cat_ndims(dims(concat), concat.args...)
 
 # Main logic
 # ----------
