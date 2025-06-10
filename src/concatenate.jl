@@ -28,8 +28,7 @@ export concatenate
 @compat public Concatenated, cat, cat!, concatenated
 
 using Base: promote_eltypeof
-using ..DerivableInterfaces:
-  DerivableInterfaces, AbstractInterface, interface, zero!, arraytype
+using ..DerivableInterfaces: DerivableInterfaces, AbstractArrayInterface, interface, zero!
 
 unval(x) = x
 unval(::Val{x}) where {x} = x
@@ -53,13 +52,17 @@ struct Concatenated{Interface,Dims,Args<:Tuple}
   end
 end
 
-function Concatenated(interface::Union{Nothing,AbstractInterface}, dims::Val, args::Tuple)
+function Concatenated(
+  interface::Union{AbstractArrayInterface,Nothing}, dims::Val, args::Tuple
+)
   return _Concatenated(interface, dims, args)
 end
 function Concatenated(dims::Val, args::Tuple)
-  return Concatenated(interface(args...), dims, args)
+  return Concatenated(cat_interface(dims, args...), dims, args)
 end
-function Concatenated{Interface}(dims::Val, args::Tuple) where {Interface}
+function Concatenated{Interface}(
+  dims::Val, args::Tuple
+) where {Interface<:Union{AbstractArrayInterface,Nothing}}
   return Concatenated(Interface(), dims, args)
 end
 
@@ -81,8 +84,11 @@ end
 # ------------------------------------
 Base.similar(concat::Concatenated) = similar(concat, eltype(concat))
 Base.similar(concat::Concatenated, ::Type{T}) where {T} = similar(concat, T, axes(concat))
-function Base.similar(concat::Concatenated, ::Type{T}, ax) where {T}
-  return similar(arraytype(interface(concat), T), ax)
+function Base.similar(concat::Concatenated, ax::Tuple)
+  return similar(interface(concat), eltype(concat), ax)
+end
+function Base.similar(concat::Concatenated, ::Type{T}, ax::Tuple) where {T}
+  return similar(interface(concat), T, ax)
 end
 
 function cat_axis(
@@ -108,10 +114,15 @@ function cat_axes(dims::Val, as::AbstractArray...)
   return cat_axes(unval(dims), as...)
 end
 
+function cat_interface(dims, as::AbstractArray...)
+  N = cat_ndims(dims, as...)
+  return typeof(interface(as...))(Val(N))
+end
+
 Base.eltype(concat::Concatenated) = promote_eltypeof(concat.args...)
 Base.axes(concat::Concatenated) = cat_axes(dims(concat), concat.args...)
 Base.size(concat::Concatenated) = length.(axes(concat))
-Base.ndims(concat::Concatenated) = length(axes(concat))
+Base.ndims(concat::Concatenated) = cat_ndims(dims(concat), concat.args...)
 
 # Main logic
 # ----------

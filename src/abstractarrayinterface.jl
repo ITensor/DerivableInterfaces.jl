@@ -1,20 +1,25 @@
 # TODO: Add `ndims` type parameter.
-abstract type AbstractArrayInterface <: AbstractInterface end
+abstract type AbstractArrayInterface{N} <: AbstractInterface end
 
+function interface(::Type{<:Broadcast.AbstractArrayStyle{N}}) where {N}
+  return DefaultArrayInterface{N}()
+end
 function interface(::Type{<:Broadcast.AbstractArrayStyle})
   return DefaultArrayInterface()
 end
 
-function interface(::Type{<:Broadcast.Broadcasted{Nothing}})
-  return DefaultArrayInterface()
+function interface(BC::Type{<:Broadcast.Broadcasted{Nothing}})
+  return DefaultArrayInterface{ndims(BC)}()
 end
 
 function interface(::Type{<:Broadcast.Broadcasted{<:Style}}) where {Style}
   return interface(Style)
 end
 
-# TODO: Define as `Array{T}`.
-arraytype(::AbstractArrayInterface, T::Type) = error("Not implemented.")
+# TODO: Define as `similar(Array{T}, ax)`.
+function Base.similar(interface::AbstractArrayInterface, T::Type, ax::Tuple)
+  return error("Not implemented.")
+end
 
 using ArrayLayouts: ArrayLayouts
 
@@ -85,7 +90,7 @@ end
 @interface interface::AbstractArrayInterface function Base.similar(
   a::AbstractArray, T::Type, size::Tuple{Vararg{Int}}
 )
-  return similar(arraytype(interface, T), size)
+  return similar(interface, T, size)
 end
 
 @interface ::AbstractArrayInterface function Base.copy(a::AbstractArray)
@@ -105,8 +110,7 @@ end
 @interface interface::AbstractArrayInterface function Base.similar(
   bc::Broadcast.Broadcasted, T::Type, axes::Tuple
 )
-  # `arraytype(::AbstractInterface)` determines the default array type associated with the interface.
-  return similar(arraytype(interface, T), axes)
+  return similar(interface, T, axes)
 end
 
 using MapBroadcast: Mapped

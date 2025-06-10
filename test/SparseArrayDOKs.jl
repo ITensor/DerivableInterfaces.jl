@@ -40,7 +40,9 @@ using DerivableInterfaces:
 using LinearAlgebra: LinearAlgebra
 
 # Define an interface.
-struct SparseArrayInterface <: AbstractArrayInterface end
+struct SparseArrayInterface{N} <: AbstractArrayInterface{N} end
+SparseArrayInterface(::Val{N}) where {N} = SparseArrayInterface{N}()
+SparseArrayInterface{M}(::Val{N}) where {M,N} = SparseArrayInterface{N}()
 
 # Define interface functions.
 @interface ::SparseArrayInterface function Base.getindex(
@@ -66,11 +68,15 @@ end
 struct SparseArrayStyle{N} <: Broadcast.AbstractArrayStyle{N} end
 SparseArrayStyle{M}(::Val{N}) where {M,N} = SparseArrayStyle{N}()
 
-DerivableInterfaces.interface(::Type{<:SparseArrayStyle}) = SparseArrayInterface()
+function DerivableInterfaces.interface(::Type{<:SparseArrayStyle{N}}) where {N}
+  return SparseArrayInterface{N}()
+end
 
 @derive SparseArrayStyle AbstractArrayStyleOps
 
-DerivableInterfaces.arraytype(::SparseArrayInterface, T::Type) = SparseArrayDOK{T}
+function Base.similar(::SparseArrayInterface, T::Type, ax::Tuple)
+  return similar(SparseArrayDOK{T}, ax)
+end
 
 # Interface functions.
 @interface ::SparseArrayInterface function Broadcast.BroadcastStyle(type::Type)
@@ -260,7 +266,9 @@ function DerivableInterfaces.zero!(a::SparseArrayDOK)
 end
 
 # Specify the interface the type adheres to.
-DerivableInterfaces.interface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
+function DerivableInterfaces.interface(arrayt::Type{<:SparseArrayDOK})
+  SparseArrayInterface{ndims(arrayt)}()
+end
 
 # Define aliases like `SparseMatrixDOK`, `AnySparseArrayDOK`, etc.
 @array_aliases SparseArrayDOK
