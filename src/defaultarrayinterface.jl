@@ -6,7 +6,11 @@ DefaultArrayInterface{M}(::Val{N}) where {M,N} = DefaultArrayInterface{N}()
 
 using TypeParameterAccessors: parenttype
 function interface(a::Type{<:AbstractArray})
-  parenttype(a) === a && return DefaultArrayInterface{ndims(a)}()
+  parenttype(a) === a && return DefaultArrayInterface()
+  return interface(parenttype(a))
+end
+function interface(a::Type{<:AbstractArray{<:Any,N}}) where {N}
+  parenttype(a) === a && return DefaultArrayInterface{N}()
   return interface(parenttype(a))
 end
 
@@ -45,9 +49,6 @@ end
   return Base.mapreduce(f, op, as...; kwargs...)
 end
 
-function arraytype(::DefaultArrayInterface{N}, T::Type) where {N}
-  return Array{T,N}
-end
-function arraytype(::DefaultArrayInterface{Any}, T::Type)
-  return Array{T}
+function Base.similar(::DefaultArrayInterface, T::Type, ax::Tuple)
+  return similar(Array{T}, ax)
 end

@@ -28,8 +28,7 @@ export concatenate
 @compat public Concatenated, cat, cat!, concatenated
 
 using Base: promote_eltypeof
-using ..DerivableInterfaces:
-  DerivableInterfaces, AbstractArrayInterface, interface, zero!, arraytype
+using ..DerivableInterfaces: DerivableInterfaces, AbstractArrayInterface, interface, zero!
 
 unval(x) = x
 unval(::Val{x}) where {x} = x
@@ -47,13 +46,13 @@ function _Concatenated end
 Lazy representation of the concatenation of various `Args` along `Dims`, in order to provide
 hooks to customize the implementation.
 """
-struct Concatenated{Interface<:Union{AbstractArrayInterface,Nothing},Dims,Args<:Tuple}
+struct Concatenated{Interface,Dims,Args<:Tuple}
   interface::Interface
   dims::Val{Dims}
   args::Args
   global @inline function _Concatenated(
     interface::Interface, dims::Val{Dims}, args::Args
-  ) where {Interface<:Union{AbstractArrayInterface,Nothing},Dims,Args<:Tuple}
+  ) where {Interface,Dims,Args<:Tuple}
     return new{Interface,Dims,Args}(interface, dims, args)
   end
 end
@@ -92,8 +91,11 @@ end
 # ------------------------------------
 Base.similar(concat::Concatenated) = similar(concat, eltype(concat))
 Base.similar(concat::Concatenated, ::Type{T}) where {T} = similar(concat, T, axes(concat))
-function Base.similar(concat::Concatenated, ::Type{T}, ax) where {T}
-  return similar(arraytype(interface(concat), T), ax)
+function Base.similar(concat::Concatenated, ax::Tuple)
+  return similar(interface(concat), eltype(concat), ax)
+end
+function Base.similar(concat::Concatenated, ::Type{T}, ax::Tuple) where {T}
+  return similar(interface(concat), T, ax)
 end
 
 function cat_axis(

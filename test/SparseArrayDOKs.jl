@@ -74,7 +74,9 @@ end
 
 @derive SparseArrayStyle AbstractArrayStyleOps
 
-DerivableInterfaces.arraytype(::SparseArrayInterface, T::Type) = SparseArrayDOK{T}
+function Base.similar(::SparseArrayInterface, T::Type, ax::Tuple)
+  return similar(SparseArrayDOK{T}, ax)
+end
 
 # Interface functions.
 @interface ::SparseArrayInterface function Broadcast.BroadcastStyle(type::Type)
