@@ -6,6 +6,8 @@ interface(x1, x_rest...) = combine_interfaces(interface(x1), interface.(x_rest).
 
 abstract type AbstractInterface end
 
+interface(x::AbstractInterface) = x
+
 (interface::AbstractInterface)(f) = InterfaceFunction(interface, f)
 
 # Adapted from `Base.Broadcast.combine_styles`.

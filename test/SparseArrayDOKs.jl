@@ -267,7 +267,7 @@ end
 
 # Specify the interface the type adheres to.
 function DerivableInterfaces.interface(arrayt::Type{<:SparseArrayDOK})
-  SparseArrayInterface{ndims(arrayt)}()
+  return SparseArrayInterface{ndims(arrayt)}()
 end
 
 # Define aliases like `SparseMatrixDOK`, `AnySparseArrayDOK`, etc.
