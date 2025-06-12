@@ -69,7 +69,7 @@ function _interface(::Val{N}, arrayt::Type{<:AbstractArray}) where {N}
       return ArrayInterface{N,unspecify_type_parameters(arrayt)}()
     end
   end
-  return _interface(Val(N), arrayt′)
+  return typeof(interface(arrayt′))(Val(N))
 end
 
 function DerivableInterfaces.interface(arrayt::Type{<:AbstractArray{<:Any,N}}) where {N}
