@@ -14,4 +14,6 @@ include("concatenate.jl")
 include("defaultarrayinterface.jl")
 include("traits.jl")
 
+include("permuteddims.jl")
+
 end
