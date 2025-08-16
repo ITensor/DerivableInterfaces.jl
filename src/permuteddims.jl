@@ -6,3 +6,10 @@ but can be customized to output a different type of array.
 """
 permuteddims(a::AbstractArray, perm) = PermutedDimsArray(a, perm)
 # See: https://github.com/JuliaLang/julia/issues/53188
+
+using LinearAlgebra: Diagonal
+function permuteddims(a::Diagonal, perm)
+  (ndims(a) == length(perm) && isperm(perm)) ||
+    throw(ArgumentError("no valid permutation of dimensions"))
+  return a
+end
