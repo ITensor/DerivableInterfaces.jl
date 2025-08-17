@@ -15,5 +15,6 @@ include("defaultarrayinterface.jl")
 include("traits.jl")
 
 include("permuteddims.jl")
+include("fillarrays.jl")
 
 end
