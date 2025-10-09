@@ -1,5 +1,5 @@
 # # DerivableInterfaces.jl
-# 
+#
 # [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://itensor.github.io/DerivableInterfaces.jl/stable/)
 # [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://itensor.github.io/DerivableInterfaces.jl/dev/)
 # [![Build Status](https://github.com/ITensor/DerivableInterfaces.jl/actions/workflows/Tests.yml/badge.svg?branch=main)](https://github.com/ITensor/DerivableInterfaces.jl/actions/workflows/Tests.yml?query=branch%3Amain)
@@ -60,7 +60,7 @@ julia> Pkg.add("DerivableInterfaces")
 # ## Examples
 
 using DerivableInterfaces:
-  DerivableInterfaces, @array_aliases, @derive, @interface, interface
+    DerivableInterfaces, @array_aliases, @derive, @interface, interface
 using Test: @test
 
 # Define an interface.
@@ -68,48 +68,48 @@ struct SparseArrayInterface end
 
 # Define interface functions.
 @interface ::SparseArrayInterface function Base.getindex(a, I::Int...)
-  checkbounds(a, I...)
-  !isstored(a, I...) && return getunstoredindex(a, I...)
-  return getstoredindex(a, I...)
+    checkbounds(a, I...)
+    !isstored(a, I...) && return getunstoredindex(a, I...)
+    return getstoredindex(a, I...)
 end
 @interface ::SparseArrayInterface function Base.setindex!(a, value, I::Int...)
-  checkbounds(a, I...)
-  iszero(value) && return a
-  if !isstored(a, I...)
-    setunstoredindex!(a, value, I...)
+    checkbounds(a, I...)
+    iszero(value) && return a
+    if !isstored(a, I...)
+        setunstoredindex!(a, value, I...)
+        return a
+    end
+    setstoredindex!(a, value, I...)
     return a
-  end
-  setstoredindex!(a, value, I...)
-  return a
 end
 
 # Define a type that will derive the interface.
-struct SparseArrayDOK{T,N} <: AbstractArray{T,N}
-  storage::Dict{CartesianIndex{N},T}
-  size::NTuple{N,Int}
+struct SparseArrayDOK{T, N} <: AbstractArray{T, N}
+    storage::Dict{CartesianIndex{N}, T}
+    size::NTuple{N, Int}
 end
 storage(a::SparseArrayDOK) = a.storage
 Base.size(a::SparseArrayDOK) = a.size
 function SparseArrayDOK{T}(size::Int...) where {T}
-  N = length(size)
-  return SparseArrayDOK{T,N}(Dict{CartesianIndex{N},T}(), size)
+    N = length(size)
+    return SparseArrayDOK{T, N}(Dict{CartesianIndex{N}, T}(), size)
 end
 function isstored(a::SparseArrayDOK, I::Int...)
-  return CartesianIndex(I) in keys(storage(a))
+    return CartesianIndex(I) in keys(storage(a))
 end
 function getstoredindex(a::SparseArrayDOK, I::Int...)
-  return storage(a)[CartesianIndex(I)]
+    return storage(a)[CartesianIndex(I)]
 end
 function getunstoredindex(a::SparseArrayDOK, I::Int...)
-  return zero(eltype(a))
+    return zero(eltype(a))
 end
 function setstoredindex!(a::SparseArrayDOK, value, I::Int...)
-  storage(a)[CartesianIndex(I)] = value
-  return a
+    storage(a)[CartesianIndex(I)] = value
+    return a
 end
 function setunstoredindex!(a::SparseArrayDOK, value, I::Int...)
-  storage(a)[CartesianIndex(I)] = value
-  return a
+    storage(a)[CartesianIndex(I)] = value
+    return a
 end
 
 # Specify the interface the type adheres to.
@@ -119,9 +119,9 @@ DerivableInterfaces.interface(::Type{<:SparseArrayDOK}) = SparseArrayInterface()
 @array_aliases SparseArrayDOK
 
 # DerivableInterfaces the interface for the type.
-@derive (T=SparseArrayDOK,) begin
-  Base.getindex(::T, ::Int...)
-  Base.setindex!(::T, ::Any, ::Int...)
+@derive (T = SparseArrayDOK,) begin
+    Base.getindex(::T, ::Int...)
+    Base.setindex!(::T, ::Any, ::Int...)
 end
 
 a = SparseArrayDOK{Float64}(2, 2)

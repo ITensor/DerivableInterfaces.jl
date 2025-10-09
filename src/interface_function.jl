@@ -10,8 +10,8 @@ call(interface, f, args...) = f(args...)
 call(interface, f, args...; kwargs...) = error("Not implemented")
 
 # Change the behavior of a function to use a certain interface.
-struct InterfaceFunction{Interface,F} <: Function
-  interface::Interface
-  f::F
+struct InterfaceFunction{Interface, F} <: Function
+    interface::Interface
+    f::F
 end
 (f::InterfaceFunction)(args...; kwargs...) = call(f.interface, f.f, args...; kwargs...)
