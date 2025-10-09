@@ -9,7 +9,7 @@ permuteddims(a::AbstractArray, perm) = PermutedDimsArray(a, perm)
 
 using LinearAlgebra: Diagonal
 function permuteddims(a::Diagonal, perm)
-  (ndims(a) == length(perm) && isperm(perm)) ||
-    throw(ArgumentError("no valid permutation of dimensions"))
-  return a
+    (ndims(a) == length(perm) && isperm(perm)) ||
+        throw(ArgumentError("no valid permutation of dimensions"))
+    return a
 end

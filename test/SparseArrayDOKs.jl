@@ -4,10 +4,10 @@ isstored(a::AbstractArray, I::CartesianIndex) = isstored(a, Tuple(I)...)
 getstoredindex(a::AbstractArray, I::CartesianIndex) = getstoredindex(a, Tuple(I)...)
 getunstoredindex(a::AbstractArray, I::CartesianIndex) = getunstoredindex(a, Tuple(I)...)
 function setstoredindex!(a::AbstractArray, value, I::CartesianIndex)
-  return setstoredindex!(a, value, Tuple(I)...)
+    return setstoredindex!(a, value, Tuple(I)...)
 end
 function setunstoredindex!(a::AbstractArray, value, I::CartesianIndex)
-  return setunstoredindex!(a, value, Tuple(I)...)
+    return setunstoredindex!(a, value, Tuple(I)...)
 end
 
 # A view of the stored values of an array.
@@ -16,171 +16,171 @@ end
 # is then interpreted as a sparse array. Also, that involves extra
 # logic for determining if the indices are stored or not, but we know
 # the indices are stored.
-struct StoredValues{T,A<:AbstractArray{T},I} <: AbstractVector{T}
-  array::A
-  storedindices::I
+struct StoredValues{T, A <: AbstractArray{T}, I} <: AbstractVector{T}
+    array::A
+    storedindices::I
 end
 StoredValues(a::AbstractArray) = StoredValues(a, collect(eachstoredindex(a)))
 Base.size(a::StoredValues) = size(a.storedindices)
 Base.getindex(a::StoredValues, I::Int) = getstoredindex(a.array, a.storedindices[I])
 function Base.setindex!(a::StoredValues, value, I::Int)
-  return setstoredindex!(a.array, value, a.storedindices[I])
+    return setstoredindex!(a.array, value, a.storedindices[I])
 end
 
 storedvalues(a::AbstractArray) = StoredValues(a)
 
 using ArrayLayouts: ArrayLayouts, MatMulMatAdd, MemoryLayout
 using DerivableInterfaces:
-  DerivableInterfaces,
-  @array_aliases,
-  @derive,
-  @interface,
-  AbstractArrayInterface,
-  interface
+    DerivableInterfaces,
+    @array_aliases,
+    @derive,
+    @interface,
+    AbstractArrayInterface,
+    interface
 using LinearAlgebra: LinearAlgebra
 
 # Define an interface.
 struct SparseArrayInterface{N} <: AbstractArrayInterface{N} end
 SparseArrayInterface(::Val{N}) where {N} = SparseArrayInterface{N}()
-SparseArrayInterface{M}(::Val{N}) where {M,N} = SparseArrayInterface{N}()
+SparseArrayInterface{M}(::Val{N}) where {M, N} = SparseArrayInterface{N}()
 
 # Define interface functions.
 @interface ::SparseArrayInterface function Base.getindex(
-  a::AbstractArray{<:Any,N}, I::Vararg{Int,N}
-) where {N}
-  checkbounds(a, I...)
-  !isstored(a, I...) && return getunstoredindex(a, I...)
-  return getstoredindex(a, I...)
+        a::AbstractArray{<:Any, N}, I::Vararg{Int, N}
+    ) where {N}
+    checkbounds(a, I...)
+    !isstored(a, I...) && return getunstoredindex(a, I...)
+    return getstoredindex(a, I...)
 end
 @interface ::SparseArrayInterface function Base.setindex!(
-  a::AbstractArray{<:Any,N}, value, I::Vararg{Int,N}
-) where {N}
-  checkbounds(a, I...)
-  if !isstored(a, I...)
-    iszero(value) && return a
-    setunstoredindex!(a, value, I...)
+        a::AbstractArray{<:Any, N}, value, I::Vararg{Int, N}
+    ) where {N}
+    checkbounds(a, I...)
+    if !isstored(a, I...)
+        iszero(value) && return a
+        setunstoredindex!(a, value, I...)
+        return a
+    end
+    setstoredindex!(a, value, I...)
     return a
-  end
-  setstoredindex!(a, value, I...)
-  return a
 end
 
 struct SparseArrayStyle{N} <: Broadcast.AbstractArrayStyle{N} end
-SparseArrayStyle{M}(::Val{N}) where {M,N} = SparseArrayStyle{N}()
+SparseArrayStyle{M}(::Val{N}) where {M, N} = SparseArrayStyle{N}()
 
 function DerivableInterfaces.interface(::Type{<:SparseArrayStyle{N}}) where {N}
-  return SparseArrayInterface{N}()
+    return SparseArrayInterface{N}()
 end
 
 @derive SparseArrayStyle AbstractArrayStyleOps
 
 function Base.similar(::SparseArrayInterface, T::Type, ax::Tuple)
-  return similar(SparseArrayDOK{T}, ax)
+    return similar(SparseArrayDOK{T}, ax)
 end
 
 # Interface functions.
 @interface ::SparseArrayInterface function Broadcast.BroadcastStyle(type::Type)
-  return SparseArrayStyle{ndims(type)}()
+    return SparseArrayStyle{ndims(type)}()
 end
 
 struct SparseLayout <: MemoryLayout end
 
 @interface ::SparseArrayInterface function ArrayLayouts.MemoryLayout(type::Type)
-  return SparseLayout()
+    return SparseLayout()
 end
 
 @interface ::SparseArrayInterface function Base.map!(
-  f, a_dest::AbstractArray, as::AbstractArray...
-)
-  # TODO: Define a function `preserves_unstored(a_dest, f, as...)`
-  # to determine if a function preserves the stored values
-  # of the destination sparse array.
-  # The current code may be inefficient since it actually
-  # accesses an unstored element, which in the case of a
-  # sparse array of arrays can allocate an array.
-  # Sparse arrays could be expected to define a cheap
-  # unstored element allocator, for example
-  # `get_prototypical_unstored(a::AbstractArray)`.
-  I = first(eachindex(as...))
-  preserves_unstored = iszero(f(map(a -> getunstoredindex(a, I), as)...))
-  if !preserves_unstored
-    # Doesn't preserve unstored values, loop over all elements.
-    for I in eachindex(as...)
-      a_dest[I] = map(f, map(a -> a[I], as)...)
+        f, a_dest::AbstractArray, as::AbstractArray...
+    )
+    # TODO: Define a function `preserves_unstored(a_dest, f, as...)`
+    # to determine if a function preserves the stored values
+    # of the destination sparse array.
+    # The current code may be inefficient since it actually
+    # accesses an unstored element, which in the case of a
+    # sparse array of arrays can allocate an array.
+    # Sparse arrays could be expected to define a cheap
+    # unstored element allocator, for example
+    # `get_prototypical_unstored(a::AbstractArray)`.
+    I = first(eachindex(as...))
+    preserves_unstored = iszero(f(map(a -> getunstoredindex(a, I), as)...))
+    if !preserves_unstored
+        # Doesn't preserve unstored values, loop over all elements.
+        for I in eachindex(as...)
+            a_dest[I] = map(f, map(a -> a[I], as)...)
+        end
     end
-  end
-  # TODO: Define `eachstoredindex(as...)`.
-  for I in union(eachstoredindex.(as)...)
-    a_dest[I] = map(f, map(a -> a[I], as)...)
-  end
-  return a_dest
+    # TODO: Define `eachstoredindex(as...)`.
+    for I in union(eachstoredindex.(as)...)
+        a_dest[I] = map(f, map(a -> a[I], as)...)
+    end
+    return a_dest
 end
 
 @interface ::SparseArrayInterface function Base.mapreduce(
-  f, op, a::AbstractArray; kwargs...
-)
-  # TODO: Need to select a better `init`.
-  return mapreduce(f, op, storedvalues(a); kwargs...)
+        f, op, a::AbstractArray; kwargs...
+    )
+    # TODO: Need to select a better `init`.
+    return mapreduce(f, op, storedvalues(a); kwargs...)
 end
 
 # ArrayLayouts functionality.
 
 function ArrayLayouts.sub_materialize(::SparseLayout, a::AbstractArray, axes::Tuple)
-  a_dest = similar(a)
-  a_dest .= a
-  return a_dest
+    a_dest = similar(a)
+    a_dest .= a
+    return a_dest
 end
 
 function ArrayLayouts.materialize!(
-  m::MatMulMatAdd{<:SparseLayout,<:SparseLayout,<:SparseLayout}
-)
-  a_dest, a1, a2, α, β = m.C, m.A, m.B, m.α, m.β
-  for I1 in eachstoredindex(a1)
-    for I2 in eachstoredindex(a2)
-      if I1[2] == I2[1]
-        I_dest = CartesianIndex(I1[1], I2[2])
-        a_dest[I_dest] = a1[I1] * a2[I2] * α + a_dest[I_dest] * β
-      end
+        m::MatMulMatAdd{<:SparseLayout, <:SparseLayout, <:SparseLayout}
+    )
+    a_dest, a1, a2, α, β = m.C, m.A, m.B, m.α, m.β
+    for I1 in eachstoredindex(a1)
+        for I2 in eachstoredindex(a2)
+            if I1[2] == I2[1]
+                I_dest = CartesianIndex(I1[1], I2[2])
+                a_dest[I_dest] = a1[I1] * a2[I2] * α + a_dest[I_dest] * β
+            end
+        end
     end
-  end
-  return a_dest
+    return a_dest
 end
 
 # Sparse array minimal interface
 using LinearAlgebra: Adjoint
 function isstored(a::Adjoint, i::Int, j::Int)
-  return isstored(parent(a), j, i)
+    return isstored(parent(a), j, i)
 end
 function getstoredindex(a::Adjoint, i::Int, j::Int)
-  return getstoredindex(parent(a), j, i)'
+    return getstoredindex(parent(a), j, i)'
 end
 function getunstoredindex(a::Adjoint, i::Int, j::Int)
-  return getunstoredindex(parent(a), j, i)'
+    return getunstoredindex(parent(a), j, i)'
 end
 function eachstoredindex(a::Adjoint)
-  return map(CartesianIndex ∘ reverse ∘ Tuple, collect(eachstoredindex(parent(a))))
+    return map(CartesianIndex ∘ reverse ∘ Tuple, collect(eachstoredindex(parent(a))))
 end
 
-perm(::PermutedDimsArray{<:Any,<:Any,p}) where {p} = p
-iperm(::PermutedDimsArray{<:Any,<:Any,<:Any,ip}) where {ip} = ip
+perm(::PermutedDimsArray{<:Any, <:Any, p}) where {p} = p
+iperm(::PermutedDimsArray{<:Any, <:Any, <:Any, ip}) where {ip} = ip
 
 # TODO: Use `Base.PermutedDimsArrays.genperm` or
 # https://github.com/jipolanco/StaticPermutations.jl?
 genperm(v, perm) = map(j -> v[j], perm)
 
 function isstored(a::PermutedDimsArray, I::Int...)
-  return isstored(parent(a), genperm(I, iperm(a))...)
+    return isstored(parent(a), genperm(I, iperm(a))...)
 end
 function getstoredindex(a::PermutedDimsArray, I::Int...)
-  return getstoredindex(parent(a), genperm(I, iperm(a))...)
+    return getstoredindex(parent(a), genperm(I, iperm(a))...)
 end
 function getunstoredindex(a::PermutedDimsArray, I::Int...)
-  return getunstoredindex(parent(a), genperm(I, iperm(a))...)
+    return getunstoredindex(parent(a), genperm(I, iperm(a))...)
 end
 function eachstoredindex(a::PermutedDimsArray)
-  return map(collect(eachstoredindex(parent(a)))) do I
-    return CartesianIndex(genperm(I, perm(a)))
-  end
+    return map(collect(eachstoredindex(parent(a)))) do I
+        return CartesianIndex(genperm(I, perm(a)))
+    end
 end
 
 tuple_oneto(n) = ntuple(identity, n)
@@ -190,84 +190,86 @@ tuple_oneto(n) = ntuple(identity, n)
 ## end
 
 function eachstoredparentindex(a::SubArray)
-  return filter(eachstoredindex(parent(a))) do I
-    return all(d -> I[d] ∈ parentindices(a)[d], 1:ndims(parent(a)))
-  end
+    return filter(eachstoredindex(parent(a))) do I
+        return all(d -> I[d] ∈ parentindices(a)[d], 1:ndims(parent(a)))
+    end
 end
 function storedvalues(a::SubArray)
-  return @view parent(a)[collect(eachstoredparentindex(a))]
+    return @view parent(a)[collect(eachstoredparentindex(a))]
 end
 function isstored(a::SubArray, I::Int...)
-  return isstored(parent(a), Base.reindex(parentindices(a), I)...)
+    return isstored(parent(a), Base.reindex(parentindices(a), I)...)
 end
 function getstoredindex(a::SubArray, I::Int...)
-  return getstoredindex(parent(a), Base.reindex(parentindices(a), I)...)
+    return getstoredindex(parent(a), Base.reindex(parentindices(a), I)...)
 end
 function getunstoredindex(a::SubArray, I::Int...)
-  return getunstoredindex(parent(a), Base.reindex(parentindices(a), I)...)
+    return getunstoredindex(parent(a), Base.reindex(parentindices(a), I)...)
 end
 function setstoredindex!(a::SubArray, value, I::Int...)
-  return setstoredindex!(parent(a), value, Base.reindex(parentindices(a), I)...)
+    return setstoredindex!(parent(a), value, Base.reindex(parentindices(a), I)...)
 end
 function setunstoredindex!(a::SubArray, value, I::Int...)
-  return setunstoredindex!(parent(a), value, Base.reindex(parentindices(a), I)...)
+    return setunstoredindex!(parent(a), value, Base.reindex(parentindices(a), I)...)
 end
 function eachstoredindex(a::SubArray)
-  nonscalardims = filter(tuple_oneto(ndims(parent(a)))) do d
-    return !(parentindices(a)[d] isa Real)
-  end
-  return collect((
-    CartesianIndex(
-      map(nonscalardims) do d
-        return findfirst(==(I[d]), parentindices(a)[d])
-      end,
-    ) for I in eachstoredparentindex(a)
-  ))
+    nonscalardims = filter(tuple_oneto(ndims(parent(a)))) do d
+        return !(parentindices(a)[d] isa Real)
+    end
+    return collect(
+        (
+            CartesianIndex(
+                    map(nonscalardims) do d
+                        return findfirst(==(I[d]), parentindices(a)[d])
+                end,
+                ) for I in eachstoredparentindex(a)
+        )
+    )
 end
 
 # Define a type that will derive the interface.
-struct SparseArrayDOK{T,N} <: AbstractArray{T,N}
-  storage::Dict{CartesianIndex{N},T}
-  size::NTuple{N,Int}
+struct SparseArrayDOK{T, N} <: AbstractArray{T, N}
+    storage::Dict{CartesianIndex{N}, T}
+    size::NTuple{N, Int}
 end
 storage(a::SparseArrayDOK) = a.storage
 Base.size(a::SparseArrayDOK) = a.size
 function SparseArrayDOK{T}(size::Int...) where {T}
-  N = length(size)
-  return SparseArrayDOK{T,N}(Dict{CartesianIndex{N},T}(), size)
+    N = length(size)
+    return SparseArrayDOK{T, N}(Dict{CartesianIndex{N}, T}(), size)
 end
 # Used in `Base.similar`.
 function SparseArrayDOK{T}(::UndefInitializer, size::Tuple{Vararg{Int}}) where {T}
-  return SparseArrayDOK{T}(size...)
+    return SparseArrayDOK{T}(size...)
 end
 function isstored(a::SparseArrayDOK, I::Int...)
-  return CartesianIndex(I) in keys(storage(a))
+    return CartesianIndex(I) in keys(storage(a))
 end
 function getstoredindex(a::SparseArrayDOK, I::Int...)
-  return storage(a)[CartesianIndex(I)]
+    return storage(a)[CartesianIndex(I)]
 end
 function getunstoredindex(a::SparseArrayDOK, I::Int...)
-  return zero(eltype(a))
+    return zero(eltype(a))
 end
 function setstoredindex!(a::SparseArrayDOK, value, I::Int...)
-  storage(a)[CartesianIndex(I)] = value
-  return a
+    storage(a)[CartesianIndex(I)] = value
+    return a
 end
 function setunstoredindex!(a::SparseArrayDOK, value, I::Int...)
-  storage(a)[CartesianIndex(I)] = value
-  return a
+    storage(a)[CartesianIndex(I)] = value
+    return a
 end
 eachstoredindex(a::SparseArrayDOK) = keys(storage(a))
 storedlength(a::SparseArrayDOK) = length(eachstoredindex(a))
 
 function DerivableInterfaces.zero!(a::SparseArrayDOK)
-  empty!(storage(a))
-  return a
+    empty!(storage(a))
+    return a
 end
 
 # Specify the interface the type adheres to.
 function DerivableInterfaces.interface(arrayt::Type{<:SparseArrayDOK})
-  return SparseArrayInterface{ndims(arrayt)}()
+    return SparseArrayInterface{ndims(arrayt)}()
 end
 
 # Define aliases like `SparseMatrixDOK`, `AnySparseArrayDOK`, etc.
@@ -278,7 +280,7 @@ end
 
 # avoid overloading `Base.cat` because of method invalidations
 function Base._cat(dims, args::SparseArrayDOK...)
-  return DerivableInterfaces.Concatenate.concatenate(dims, args...)
+    return DerivableInterfaces.Concatenate.concatenate(dims, args...)
 end
 
 end
